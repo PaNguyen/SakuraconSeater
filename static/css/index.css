@@ -12,6 +12,9 @@ button.delete {
 .table.warn {
 	background:#d33;
 }
+.table.warn > h2 > button.delete {
+	color:#333;
+}
 .table > h2 {
 	height:1.5em;
 	line-height:1.5em;
@@ -44,7 +47,7 @@ button.delete {
 	padding:0;
 	background:none;
 }
-.player.playing > .notify {
+.table.playing .notify {
 	display:none;
 }
 

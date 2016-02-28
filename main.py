@@ -13,6 +13,7 @@ import tornado.template
 import signal
 import json
 import datetime
+from twilio.rest import TwilioRestClient
 
 import util
 import settings
@@ -48,7 +49,7 @@ class TablesHandler(session.AuthenticatedHandler):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         with db.getCur() as cur:
-            cur.execute("INSERT INTO Tables(Playing, Started) VALUES(0, NULL, NULL)")
+            cur.execute("INSERT INTO Tables(Playing, Started) VALUES(0, NULL)")
             result["status"] = "success"
             result["message"] = "Added table"
         self.write(json.dumps(result))
@@ -63,6 +64,44 @@ class StartTableHandler(session.AuthenticatedHandler):
                 cur.execute("UPDATE Tables SET Playing = 1, Started = datetime('now', 'localtime') WHERE Id = ?", (table,))
                 result["status"] = "success"
                 result["message"] = "Started table"
+        self.write(json.dumps(result))
+
+class FillTableHandler(session.AuthenticatedHandler):
+    def handlepost(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        table = self.get_argument("table", None)
+        if table is not None:
+            with db.getCur() as cur:
+                cur.execute("SELECT COUNT(*) FROM Players WHERE TableId = ?", (table,))
+                playercount = max(4 - cur.fetchone()[0], 0)
+                cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Id FROM Queue LIMIT ?", (table, playercount))
+                cur.execute("DELETE FROM Queue LIMIT ?", (playercount,))
+                result["status"] = "success"
+                result["message"] = "Started table"
+        self.write(json.dumps(result))
+
+class NotifyTableHandler(session.AuthenticatedHandler):
+    def handlepost(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        table = self.get_argument("table", None)
+        if table is not None:
+            with db.getCur() as cur:
+                cur.execute("SELECT Phone FROM People INNER JOIN Players ON PersonId = People.Id WHERE TableId = ?", (table,))
+                client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+                phones = 0
+                for phone in cur.fetchall():
+                    phone = phone[0]
+                    if phone is not None and phone != "":
+                        client.messages.create(
+                            to=phone,
+                            from_="+14252767908",
+                            body="Your mahjong table is opening up soon!",
+                        )
+                        phones += 1
+                result["status"] = "success"
+                result["message"] = "Notified " + str(phones) + " players"
         self.write(json.dumps(result))
 
 class ClearTableHandler(session.AuthenticatedHandler):
@@ -120,7 +159,24 @@ class QueueHandler(session.AuthenticatedHandler):
 
 class NotifyPlayerHandler(session.AuthenticatedHandler):
     def handlepost(self):
-        pass
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        player = self.get_argument("player", None)
+        if player is not None:
+            with db.getCur() as cur:
+                cur.execute("SELECT Phone FROM People WHERE Id = ?", (player,))
+                phone = cur.fetchone()[0]
+                if phone is not None:
+                    client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+
+                    client.messages.create(
+                        to=phone,
+                        from_="+14252767908",
+                        body="Your mahjong table is opening up soon!",
+                    )
+                    result["status"] = "success"
+                    result["message"] = "Notified player"
+        self.write(json.dumps(result))
 
 class TablePlayerHandler(session.AuthenticatedHandler):
     def handlepost(self):
@@ -204,6 +260,8 @@ class Application(tornado.web.Application):
                 (r"/api/login", LoginHandler),
                 (r"/api/tables", TablesHandler),
                 (r"/api/starttable", StartTableHandler),
+                (r"/api/filltable", FillTableHandler),
+                (r"/api/notifytable", NotifyTableHandler),
                 (r"/api/cleartable", ClearTableHandler),
                 (r"/api/deletetable", DeleteTableHandler),
                 (r"/api/queue", QueueHandler),
@@ -224,7 +282,7 @@ class Application(tornado.web.Application):
 def periodicCleanup():
     with db.getCur() as cur:
         cur.execute("DELETE FROM Sessions WHERE Expires <= NOW();")
-        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Qeueue);");
+        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue);");
 
 def main():
     if len(sys.argv) > 1:

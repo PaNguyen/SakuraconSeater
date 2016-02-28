@@ -32,9 +32,7 @@
 				window.tables = data;
 				data.LoggedIn = window.loggedIn;
 				$("#tables").html(Mustache.render(tableTemplate, data));
-				$(".table.playing").each(function(i, elem) {
-					$(elem).data("started-date", new Date($(elem).data("started")));
-				})
+				$(".table").draggable();
 				if(window.loggedIn)
 					$(".players").sortable({
 						connectWith:"#playerqueue, .players",
@@ -108,22 +106,33 @@
 			});
 		}
 		refresh();
-		window.setInterval(function () {
+		function updateTimes() {
 			var now = new Date();
 			$(".table.playing").each(function(i, table) {
 				var started = $(table).data("started-date");
+				if(started === undefined) {
+					$(table).data("started-date", new Date($(table).data("started")));
+					started = $(table).data("started-date");
+				}
 				var elapsed = Math.floor((now - started));
 				$(table).children(".duration").text(timeString(elapsed));
 				if(elapsed > gameDuration)
 					$(table).addClass("warn");
 			});
-		}, 1000);
+		}
+		window.setInterval(updateTimes, 1000);
 
 		///////////////////
 		//    BUTTONS    //
 		///////////////////
 
-		$("#login").click(function() {
+		$("#login").click(login);
+		$("#password").keyup(function(e) {
+			if(e.keyCode == 13)
+				login();
+		});
+
+		function login() {
 			var password = $("#password").val();
 			$("#password").val("");
 			$.post("/api/login", {'password':password}, function(data) {
@@ -131,7 +140,7 @@
 				if(data.status === "success")
 					refresh();
 			}, 'json');
-		});
+		}
 		window.addTable = function() {
 			$.post("/api/tables", function(data) {
 				notify(data.message, data.status);
@@ -152,6 +161,20 @@
 				if(data.status === "success") {
 					getTables();
 				}
+			}, "json");
+		};
+		window.fillTable = function(table) {
+			$.post("/api/filltable", {'table': table}, function(data) {
+				notify(data.message, data.status);
+				if(data.status === "success") {
+					getTables();
+					getQueue();
+				}
+			}, "json");
+		};
+		window.notifyTable = function(table) {
+			$.post("/api/notifytable", {'table': table}, function(data) {
+				notify(data.message, data.status);
 			}, "json");
 		};
 		window.clearTable = function(table) {
@@ -184,7 +207,7 @@
 			}, "json");
 		};
 		window.notifyPlayer = function(player) {
-			$.post("/api/notifyPlayer", {'player':player}, function(data) {
+			$.post("/api/notifyplayer", {'player':player}, function(data) {
 				notify(data.message, data.status);
 				if(data.status === "success")  {
 					getQueue();

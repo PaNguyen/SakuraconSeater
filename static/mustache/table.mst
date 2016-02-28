@@ -12,23 +12,25 @@
 		<div class="duration"></div>
 		<ul class="players">
 			{{#Players}}
-				<li class="player playing" data-id="{{ Id }}">
+				<li class="player" data-id="{{ Id }}">
 					{{ Name }}
 					{{ #LoggedIn }}
 						<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
+						{{ #HasPhone }}
+							<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
+						{{ /HasPhone}}
 					{{ /LoggedIn }}
 				</li>
 			{{/Players}}
 		</ul>
-		{{ #Playing }}
-
-		{{ /Playing}}
 		{{ #LoggedIn }}
 			{{ #Playing }}
 				<button class="clearbutton" onClick="clearTable({{ Id }})">Clear</button>
 			{{ /Playing}}
 			{{ ^Playing }}
 				<button class="startbutton" onClick="startTable({{ Id }});">Start</button>
+				<button class="fillbutton" onClick="fillTable({{ Id }});">Fill</button>
+				<button class="notifybutton" onClick="notifyTable({{ Id }});">Notify</button>
 			{{ /Playing }}
 		{{ /LoggedIn }}
 	</div>
