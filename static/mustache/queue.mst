@@ -1,0 +1,21 @@
+{{ #LoggedIn }}
+	<div id="signupform">
+		<h1>Signup</h1>
+		<input id="name" placeholder="Name"></input>
+		<input id="phone" placeholder="Phone #"></input>
+		<button id="signup" onClick="signup();">Signup</button>
+	</div>
+{{ /LoggedIn }}
+<ul id="playerqueue">
+	{{#queue}}
+		<li class="player queued" id="player-{{ Id }}">
+			{{ Name }}
+			{{ #LoggedIn }}
+				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
+				{{ #HasPhone }}
+					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
+				{{ /HasPhone}}
+			{{ /LoggedIn }}
+		</li>
+	{{/queue}}
+</ul>

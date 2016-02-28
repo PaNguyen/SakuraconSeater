@@ -1,0 +1,21 @@
+{% extends "template.html" %}
+{% block head %}
+	<link href="{{ static_url("css/index.css") }}" type="text/css" rel="stylesheet" />
+{% end %}
+{% block body %}
+<div id="loginform">
+	<input id="password" type="password"/>
+	<button id="login">Login</button>
+</div>
+<br />
+<div class="region">
+	<h1>Tables</h1>
+	<div id="tables">
+	</div>
+</div>
+<div class="region">
+	<h1>Queue</h1>
+	<div id="queue">
+	</div>
+</div>
+{% end %}

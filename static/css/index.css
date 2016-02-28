@@ -1,0 +1,43 @@
+.table {
+	border:2px solid #333;
+}
+
+.table.playing {
+	background:#2f2;
+}
+
+.table > .players {
+	min-height:2em;
+}
+
+.player {
+	height:2em;
+	background:#ccc;
+	list-style:none;
+	border:1px solid #333;
+}
+
+.player > button {
+	float:right;
+	height:100%;
+	width:2em;
+	color:#d33;
+	padding:0;
+	background:none;
+}
+.player.playing > .notify {
+	display:none;
+}
+
+@media (min-width:600px) {
+	body > .region {
+		display:inline-block;
+		vertical-align:top;
+		width:49%;
+	}
+}
+@media (max-width:600px) {
+	body > .region {
+		width:100%;
+	}
+}
