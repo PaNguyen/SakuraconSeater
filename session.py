@@ -6,10 +6,20 @@ import tornado.web
 import db
 import hashlib
 import datetime
-import util
+import json
 from passlib.hash import pbkdf2_sha256
 
+import util
 import settings
+
+class AuthenticatedHandler(tornado.web.RequestHandler):
+    def post(self, *args):
+        cookie = getSession(self)
+        if loggedIn(cookie):
+            self.handlepost(*args)
+        else:
+            self.write(json.dumps({'status': "error", 'message': "Not logged in"}))
+
 
 def login(cookie, password):
     with db.getCur() as cur:

@@ -1,12 +1,32 @@
+button.delete {
+	color:#d33;
+}
+
 .table {
 	border:2px solid #333;
 }
 
 .table.playing {
-	background:#2f2;
+	background:#3b3;
+}
+.table.warn {
+	background:#d33;
+}
+.table > h2 {
+	height:1.5em;
+	line-height:1.5em;
+	vertical-align:middle;
+}
+.table > h2 > button {
+	float:right;
+	height:100%;
+	width:2em;
+	padding:0;
+	background:none;
 }
 
-.table > .players {
+
+.table > .players, #playerqueue {
 	min-height:2em;
 }
 
@@ -21,7 +41,6 @@
 	float:right;
 	height:100%;
 	width:2em;
-	color:#d33;
 	padding:0;
 	background:none;
 }

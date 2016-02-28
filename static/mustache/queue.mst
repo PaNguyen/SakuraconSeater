@@ -8,7 +8,7 @@
 {{ /LoggedIn }}
 <ul id="playerqueue">
 	{{#queue}}
-		<li class="player queued" id="player-{{ Id }}">
+		<li class="player queued" data-id="{{ Id }}">
 			{{ Name }}
 			{{ #LoggedIn }}
 				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>

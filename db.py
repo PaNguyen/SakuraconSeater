@@ -39,8 +39,7 @@ def init():
     with getCur() as cur:
         cur.execute("CREATE TABLE IF NOT EXISTS Tables(Id INTEGER PRIMARY KEY NOT NULL, \
                 Playing BOOLEAN NOT NULL, \
-                Started DATETIME, \
-                Ending DATETIME);")
+                Started DATETIME);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS People(Id INTEGER PRIMARY KEY NOT NULL, \
                 Name VARCHAR(255) NOT NULL, \

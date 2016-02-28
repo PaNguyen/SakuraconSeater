@@ -2,11 +2,17 @@
 	<button id="addtable" onClick="addTable();">Add Table</button>
 {{ /LoggedIn }}
 {{#tables}}
-	<div class="table{{ #Playing }} playing{{ /Playing }}" id="table-{{ Id }}">
-		<h2>Table {{ Id }}</h2>
+	<div class="table{{ #Playing }} playing{{ /Playing }}" data-id="{{ Id }}" data-started="{{ Started }}">
+		<h2>
+			Table {{ Id }}
+			{{ #LoggedIn }}
+				<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
+			{{ /LoggedIn}}
+		</h2>
+		<div class="duration"></div>
 		<ul class="players">
 			{{#Players}}
-				<li class="player playing" id="player-{{ Id }}">
+				<li class="player playing" data-id="{{ Id }}">
 					{{ Name }}
 					{{ #LoggedIn }}
 						<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
@@ -14,12 +20,15 @@
 				</li>
 			{{/Players}}
 		</ul>
+		{{ #Playing }}
+
+		{{ /Playing}}
 		{{ #LoggedIn }}
 			{{ #Playing }}
-				<button class="stopbutton" data-table="{{ Id }}">Stop</button>
+				<button class="clearbutton" onClick="clearTable({{ Id }})">Clear</button>
 			{{ /Playing}}
 			{{ ^Playing }}
-				<button class="startbutton" onClick="startButton({{ Id }});">Start</button>
+				<button class="startbutton" onClick="startTable({{ Id }});">Start</button>
 			{{ /Playing }}
 		{{ /LoggedIn }}
 	</div>
