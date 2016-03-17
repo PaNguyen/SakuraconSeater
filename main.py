@@ -166,7 +166,7 @@ class QueueHandler(session.AuthenticatedHandler):
                     'message': "Unknown error occurred"}
         name = self.get_argument("name", None)
         phone = self.get_argument("phone", None)
-        numplayers = self.get_argument("numplayers", 1)
+        numplayers = int(self.get_argument("numplayers", "1"))
         if name is None or name == "":
             result["message"] = "Please enter a name"
         else:

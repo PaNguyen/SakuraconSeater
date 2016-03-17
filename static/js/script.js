@@ -210,11 +210,13 @@
 		window.signup = function() {
 			var name = $("#name").val();
 			var phone = $("#phone").val();
-			$.post("/api/queue", {'name':name, 'phone':phone}, function(data) {
+			var numplayers = $("#numplayers").val();
+			$.post("/api/queue", {'name':name, 'phone':phone, 'numplayers':numplayers}, function(data) {
 				notify(data.message, data.status);
 				if(data.status === "success")  {
 					$("#name").val("");
 					$("#phone").val("");
+					$("#numplayers").val("1");
 					getQueue();
 				}
 			}, "json");
