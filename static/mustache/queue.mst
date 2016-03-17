@@ -3,6 +3,12 @@
 		<h1>Signup</h1>
 		<input id="name" placeholder="Name"></input>
 		<input id="phone" placeholder="Phone #"></input>
+		<select id="numplayers">
+			<option value="1" selected>1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>
 		<button id="signup" onClick="signup();">Signup</button>
 	</div>
 {{ /LoggedIn }}

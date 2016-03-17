@@ -166,14 +166,19 @@ class QueueHandler(session.AuthenticatedHandler):
                     'message': "Unknown error occurred"}
         name = self.get_argument("name", None)
         phone = self.get_argument("phone", None)
+        numplayers = self.get_argument("numplayers", 1)
         if name is None or name == "":
             result["message"] = "Please enter a name"
         else:
             if phone == "":
                 phone = None
             with db.getCur() as cur:
-                cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (name, phone))
-                cur.execute("INSERT INTO Queue(Id) VALUES(?)", (cur.lastrowid,))
+                for i in range(numplayers):
+                    n = name
+                    if i > 0:
+                        n += " (" + str(i) + ")"
+                    cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
+                    cur.execute("INSERT INTO Queue(Id) VALUES(?)", (cur.lastrowid,))
                 result["status"] = "success"
                 result["message"] = "Added player"
         self.write(json.dumps(result))
