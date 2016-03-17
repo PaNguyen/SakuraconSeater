@@ -32,7 +32,24 @@
 				window.tables = data;
 				data.LoggedIn = window.loggedIn;
 				$("#tables").html(Mustache.render(tableTemplate, data));
-				$(".table").draggable();
+				$(".table").draggable({
+					snap:true,
+					stop:function(event, ui) {
+						$.post("/api/tableposition",
+						       {'x':ui.position.left,
+							       'y':ui.position.top,
+							       'table':ui.helper.data("id")},
+						       function(data) {
+							       notify(data.message, data.status);
+						}, 'json');
+					}
+				});
+				$(".table").each(function (i, table) {
+					var x = $(table).data("x");
+					var y = $(table).data("y");
+					if(x !== undefined && y !== undefined)
+						$(table).css({'top':y,'left':x})
+				});
 				if(window.loggedIn)
 					$(".players").sortable({
 						connectWith:"#playerqueue, .players",
@@ -120,12 +137,17 @@
 					$(table).addClass("warn");
 			});
 		}
-		window.setInterval(updateTimes, 1000);
+		var timeInterval = window.setInterval(updateTimes, 1000);
 
 		///////////////////
 		//    BUTTONS    //
 		///////////////////
 
+		$("#view").click(function() {
+			$("#loginform").hide(1000);
+			window.clearInterval(timeInterval);
+			window.setInterval(refresh, 1000);
+		})
 		$("#login").click(login);
 		$("#password").keyup(function(e) {
 			if(e.keyCode == 13)
@@ -215,8 +237,6 @@
 				}
 			}, "json");
 		};
-
-
 
 
 		///////////////////

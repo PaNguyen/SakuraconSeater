@@ -30,19 +30,26 @@ class TablesHandler(session.AuthenticatedHandler):
     def get(self):
         with db.getCur() as cur:
             tables = []
-            cur.execute("SELECT Id, Playing, Started FROM Tables")
+            cur.execute("SELECT Id, Playing, Started, x, y FROM Tables")
             for row in cur.fetchall():
                 table = {'Id': row[0],
                             'Playing': row[1],
-                            'Started': row[2],
+                            'Started': str(row[2]),
+                            'x': row[3],
+                            'y': row[4],
                             'Players': []}
+                if row[2] is not None:
+                    elapsed = (datetime.datetime.now() - row[2]).total_seconds()
+                    table['Duration'] = util.timeString(elapsed),
+                    if elapsed > settings.GAME_DURATION:
+                        table['Overtime'] = True
                 cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Players ON Players.PersonId = People.Id WHERE Players.TableId = ?", (row[0],))
 
                 for player in cur.fetchall():
                     table["Players"] += [{'Id': player[0],
                                             'Name': player[1],
                                             'HasPhone': player[2] is not None,
-                                            'Added': player[3]}]
+                                            'Added': str(player[3])}]
                 tables += [table]
             self.write(json.dumps({'tables': tables}))
     def handlepost(self):
@@ -75,7 +82,7 @@ class FillTableHandler(session.AuthenticatedHandler):
             with db.getCur() as cur:
                 cur.execute("SELECT COUNT(*) FROM Players WHERE TableId = ?", (table,))
                 playercount = max(4 - cur.fetchone()[0], 0)
-                cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Id FROM Queue LIMIT ?", (table, playercount))
+                cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
                 cur.execute("DELETE FROM Queue LIMIT ?", (playercount,))
                 result["status"] = "success"
                 result["message"] = "Started table"
@@ -129,16 +136,30 @@ class DeleteTableHandler(session.AuthenticatedHandler):
                 result["message"] = "Deleted table"
         self.write(json.dumps(result))
 
+class TablePositionHandler(session.AuthenticatedHandler):
+    def handlepost(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        table = self.get_argument("table", None)
+        x = self.get_argument("x", None)
+        y = self.get_argument("y", None)
+        if table is not None and x is not None and y is not None:
+            with db.getCur() as cur:
+                cur.execute("UPDATE Tables SET x = ?, y = ? WHERE Id = ?", (x, y, table))
+                result["status"] = "success"
+                result["message"] = "Moved table"
+        self.write(json.dumps(result))
+
 class QueueHandler(session.AuthenticatedHandler):
     def get(self):
         with db.getCur() as cur:
             queue= []
-            cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Queue ON Queue.Id = People.Id")
+            cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Queue ON Queue.Id = People.Id ORDER BY People.Added")
             for row in cur.fetchall():
                 queue += [{'Id': row[0],
                             'Name': row[1],
                             'HasPhone': row[2] is not None,
-                            'Added': row[2]}]
+                            'Added': str(row[2])}]
             self.write(json.dumps({'queue': queue}))
     def handlepost(self):
         result = { 'status': "error",
@@ -264,6 +285,7 @@ class Application(tornado.web.Application):
                 (r"/api/notifytable", NotifyTableHandler),
                 (r"/api/cleartable", ClearTableHandler),
                 (r"/api/deletetable", DeleteTableHandler),
+                (r"/api/tableposition", TablePositionHandler),
                 (r"/api/queue", QueueHandler),
                 (r"/api/queueplayer", QueuePlayerHandler),
                 (r"/api/tableplayer", TablePlayerHandler),
@@ -281,7 +303,7 @@ class Application(tornado.web.Application):
 
 def periodicCleanup():
     with db.getCur() as cur:
-        cur.execute("DELETE FROM Sessions WHERE Expires <= NOW();")
+        cur.execute("DELETE FROM Sessions WHERE Expires <= datetime('now');")
         cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue);");
 
 def main():
@@ -302,7 +324,6 @@ def main():
     # start it up
     tornado.ioloop.PeriodicCallback(periodicCleanup, 60 * 60 * 1000).start() # run periodicCleanup once an hour
     tornado.ioloop.IOLoop.instance().start()
-    qm.end()
 
 def sigint_handler(signum, frame):
     tornado.ioloop.IOLoop.instance().stop()

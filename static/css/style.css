@@ -7,21 +7,10 @@
 	border:0;
 	outline:0;
 }
+
 html, body {
 	background:#ddd;
 	color:#333;
-}
-
-h1 {
-	font-size:2em;
-}
-
-h2 {
-	font-size:1.5em;
-}
-
-h3 {
-	font-size:1.25em;
 }
 
 a {
@@ -44,24 +33,6 @@ button {
 
 button:hover, a:hover  {
 	text-decoration:underline;
-}
-
-table {
-	border-collapse:collapse;
-}
-
-table th {
-	background:#bbb;
-	color:#333;
-	border-right:1px solid #ddd;
-}
-
-table th:last-of-type {
-	border-right:1px solid #333;
-}
-
-table td {
-	border:1px solid #333;
 }
 
 .noselect {
