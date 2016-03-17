@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 
 import sys
 import os.path
@@ -263,7 +263,7 @@ class LoginHandler(tornado.web.RequestHandler):
             else:
                 result["status"] = "success"
                 result["message"] = "Already logged in"
-        except Exception, e:
+        except e:
             result["message"] = ": " + str(e)
 
         self.write(json.dumps(result))
