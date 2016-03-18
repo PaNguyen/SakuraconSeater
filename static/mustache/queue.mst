@@ -14,9 +14,10 @@
 {{ /LoggedIn }}
 <ul id="playerqueue">
 	{{#queue}}
-		<li class="player queued" data-id="{{ Id }}">
-			{{ Name }}
+		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
+			<span class="name">{{ Name }}</span>
 			{{ #LoggedIn }}
+				<i class="fa fa-pencil" onClick="editPlayer({{ Id }});"></i>
 				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 				{{ #HasPhone }}
 					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>

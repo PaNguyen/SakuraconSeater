@@ -245,6 +245,19 @@ class DeletePlayerHandler(session.AuthenticatedHandler):
                 result["message"] = "Deleted player"
         self.write(json.dumps(result))
 
+class EditPlayerHandler(session.AuthenticatedHandler):
+    def handlepost(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        player  = self.get_argument("player", None)
+        newname = self.get_argument("newname", None)
+        if player is not None and newname is not None:
+            with db.getCur() as cur:
+                cur.execute("UPDATE People SET Name = ? WHERE Id = ?", (newname, player))
+                result["status"] = "success"
+                result["message"] = "Updated player"
+        self.write(json.dumps(result))
+
 class LoginHandler(tornado.web.RequestHandler):
     def get(self):
         cookie = session.getSession(self)
@@ -296,6 +309,7 @@ class Application(tornado.web.Application):
                 (r"/api/tableplayer", TablePlayerHandler),
                 (r"/api/notifyplayer", NotifyPlayerHandler),
                 (r"/api/deleteplayer", DeletePlayerHandler),
+                (r"/api/editplayer", EditPlayerHandler),
         ]
         settings = dict(
                 template_path = os.path.join(os.path.dirname(__file__), "templates"),

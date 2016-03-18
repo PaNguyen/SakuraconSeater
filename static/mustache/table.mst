@@ -12,9 +12,10 @@
 		<div class="duration">{{ Duration }}</div>
 		<ul class="players">
 			{{#Players}}
-				<li class="player" data-id="{{ Id }}">
-					{{ Name }}
+				<li class="player" data-id="{{ Id }}" id="player-{{ Id }}">
+					<span class="name">{{ Name }}</span>
 					{{ #LoggedIn }}
+						<i class="fa fa-pencil" onClick="editPlayer({{ Id }});"></i>
 						<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 						{{ #HasPhone }}
 							<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>

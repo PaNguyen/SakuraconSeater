@@ -61,6 +61,8 @@
 									       'table':ui.item.parents(".table").data("id")},
 								       function(data) {
 									       notify(data.message, data.status);
+									       getTables();
+									       getQueue();
 									       if(data.status === "error") {
 										       $(this).sortable("cancel");
 										       ui.sender.sortable("cancel");
@@ -89,6 +91,8 @@
 								       {'player':ui.item.data("id")},
 								       function(data) {
 									       notify(data.message, data.status);
+									       getTables();
+									       getQueue();
 
 									       if(data.status === "error") {
 										       $(this).sortable("cancel");
@@ -229,6 +233,24 @@
 					getTables();
 				}
 			}, "json");
+		};
+		window.editPlayer = function(player) {
+			var p = $("#player-" + player);
+			var n = p.children("span.name");
+			if(n.length === 0) {
+				n = p.children("input.newname");
+				$.post("/api/editplayer", {'player':player, 'newname':n.val()}, function(data) {
+					notify(data.message, data.status);
+					if(data.status === "success")  {
+						n.replaceWith($("<span class='name'>" + n.val() + "</span>"));
+						getQueue();
+						getTables();
+					}
+				}, "json");
+			}
+			else {
+				n.replaceWith($("<input id='player-1' type='text' class='newname' value='" + n.text() + "'></input>"));
+			}
 		};
 		window.notifyPlayer = function(player) {
 			$.post("/api/notifyplayer", {'player':player}, function(data) {
