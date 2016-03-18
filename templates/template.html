@@ -9,14 +9,14 @@
 		<link rel="icon" type="image/png" href="{{ static_url("images/favicon.png") }}" />
 
 		<link href='https://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css' />
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.css" rel="stylesheet" type="text/css" />
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.theme.min.css" rel="stylesheet" type="text/css" />
+		<link href="{{ static_url("css/libraries/jquery-ui.min.css") }}" rel="stylesheet" type="text/css" />
+		<link href="{{ static_url("css/libraries/jquery-ui.theme.min.css") }}" rel="stylesheet" type="text/css" />
 		<link href="{{ static_url("css/style.css") }}" type="text/css" rel="stylesheet" />
 
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.0/notify.min.js"></script>
+		<script src="{{ static_url("js/libraries/jquery.min.js") }}"></script>
+		<script src="{{ static_url("js/libraries/jquery-ui.min.js") }}"></script>
+		<script src="{{ static_url("js/libraries/mustache.min.js") }}"></script>
+		<script src="{{ static_url("js/libraries/notify.min.js") }}"></script>
 		<script src="{{ static_url("js/script.js") }}"></script>
 
 		{% block head %}{% end %}
