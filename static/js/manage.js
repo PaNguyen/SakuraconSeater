@@ -85,6 +85,8 @@
 								       }
 							}.bind(this), 'json');
 						}
+						else
+							refresh();
 					}
 				}).disableSelection();
 				$("#beginnerqueue").sortable({
@@ -104,6 +106,8 @@
 								       }
 							}.bind(this), 'json');
 						}
+						else
+							refresh();
 					}
 				}).disableSelection();
 

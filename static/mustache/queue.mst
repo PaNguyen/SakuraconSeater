@@ -13,8 +13,8 @@
 		<button id="beginnersignup" onClick="beginnerSignup();">Beginner Signup</button>
 	</div>
 {{ /LoggedIn }}
+<h1>Intermediate</h1>
 <ul id="playerqueue">
-	<h1>Intermediate</h1>
 	{{#queue}}
 		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
 			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
@@ -27,8 +27,8 @@
 		</li>
 	{{/queue}}
 </ul>
+<h1>Beginner</h1>
 <ul id="beginnerqueue">
-	<h1>Beginner</h1>
 	{{#beginnerqueue}}
 		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
 			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>

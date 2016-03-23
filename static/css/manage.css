@@ -83,8 +83,9 @@ button.delete {
 }
 
 
-.table > .players, #playerqueue {
+.table > .players, #playerqueue, #beginnerqueue {
 	min-height:6em;
+	clear:both;
 }
 
 .player > input {

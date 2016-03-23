@@ -93,7 +93,7 @@ class FillTableHandler(tornado.web.RequestHandler):
                     cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
                     cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
                 result["status"] = "success"
-                result["message"] = "Started table"
+                result["message"] = "Filled table"
         self.write(json.dumps(result))
 
 class NotifyTableHandler(tornado.web.RequestHandler):
