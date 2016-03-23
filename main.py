@@ -14,6 +14,7 @@ import signal
 import json
 import datetime
 from twilio.rest import TwilioRestClient
+import logging
 
 import util
 import settings
@@ -24,6 +25,7 @@ import session
 from tornado.options import define, options
 define("port", default=5000, type=int)
 cookie_secret = util.randString(32)
+log = logging.getLogger("mahjong")
 
 
 class TablesHandler(tornado.web.RequestHandler):
@@ -45,7 +47,7 @@ class TablesHandler(tornado.web.RequestHandler):
                     table['Duration'] = util.timeString(elapsed),
                     if elapsed > settings.GAME_DURATION:
                         table['Overtime'] = True
-                cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Players ON Players.PersonId = People.Id WHERE Players.TableId = ?", (row[0],))
+                cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Players ON Players.PersonId = People.Id WHERE Players.TableId = ? ORDER BY People.Added", (row[0],))
 
                 for player in cur.fetchall():
                     table["Players"] += [{'Id': player[0],
@@ -59,6 +61,7 @@ class TablesHandler(tornado.web.RequestHandler):
                     'message': "Unknown error occurred"}
         with db.getCur() as cur:
             cur.execute("INSERT INTO Tables(Playing, Started, Name, Beginner) VALUES(0, NULL, \"Untitled\", 0)")
+            log.info("Created new table with ID:" + str(cur.lastrowid))
             result["status"] = "success"
             result["message"] = "Added table"
         self.write(json.dumps(result))
@@ -71,6 +74,7 @@ class StartTableHandler(tornado.web.RequestHandler):
         if table is not None:
             with db.getCur() as cur:
                 cur.execute("UPDATE Tables SET Playing = 1, Started = datetime('now', 'localtime') WHERE Id = ?", (table,))
+                log.info("Starting table with ID:" + str(table))
                 result["status"] = "success"
                 result["message"] = "Started table"
         self.write(json.dumps(result))
@@ -89,9 +93,11 @@ class FillTableHandler(tornado.web.RequestHandler):
                 if beginner:
                     cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, BeginnerQueue.Id FROM BeginnerQueue INNER JOIN People ON People.Id = BeginnerQueue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
                     cur.execute("DELETE FROM BeginnerQueue WHERE Id IN (SELECT PersonId FROM Players)")
+                    log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " beginner queued players")
                 else:
                     cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
                     cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
+                    log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " queued players")
                 result["status"] = "success"
                 result["message"] = "Filled table"
         self.write(json.dumps(result))
@@ -117,6 +123,7 @@ class NotifyTableHandler(tornado.web.RequestHandler):
                         phones += 1
                 result["status"] = "success"
                 result["message"] = "Notified " + str(phones) + " players"
+                log.info("Notified " + str(phones) + " players from table with ID:" + str(table))
         self.write(json.dumps(result))
 
 class ClearTableHandler(tornado.web.RequestHandler):
@@ -130,6 +137,7 @@ class ClearTableHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE Tables SET Playing = 0, Started = NULL WHERE Id = ?", (table,))
                 result["status"] = "success"
                 result["message"] = "Cleared table"
+                log.info("Cleared table with ID:" + str(table))
         self.write(json.dumps(result))
 
 class DeleteTableHandler(tornado.web.RequestHandler):
@@ -142,6 +150,7 @@ class DeleteTableHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM Tables WHERE Id = ?", (table))
                 result["status"] = "success"
                 result["message"] = "Deleted table"
+                log.info("Deleted table with ID:" + str(table))
         self.write(json.dumps(result))
 
 class BeginnerTableHandler(tornado.web.RequestHandler):
@@ -154,6 +163,7 @@ class BeginnerTableHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE TABLES SET Beginner = NOT Beginner WHERE Id = ?", (table,))
                 result["status"] = "success"
                 result["message"] = "Toggled table beginnerness"
+                log.info("Toggled beginerness of table with ID:" + str(table))
         self.write(json.dumps(result))
 
 class TablePositionHandler(tornado.web.RequestHandler):
@@ -168,6 +178,7 @@ class TablePositionHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE Tables SET x = ?, y = ? WHERE Id = ?", (x, y, table))
                 result["status"] = "success"
                 result["message"] = "Moved table"
+                log.info("Moved table with ID:" + str(table) + " to " + str(x) + "," + str(y))
         self.write(json.dumps(result))
 
 class QueueHandler(tornado.web.RequestHandler):
@@ -214,8 +225,10 @@ class QueueHandler(tornado.web.RequestHandler):
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
                     if beginner:
                         cur.execute("INSERT INTO BeginnerQueue(Id) VALUES(?)", (cur.lastrowid,))
+                        log.info("Added player with ID: " + str(cur.lastrowid) + " to beginner queue")
                     else:
                         cur.execute("INSERT INTO Queue(Id) VALUES(?)", (cur.lastrowid,))
+                        log.info("Added player with ID: " + str(cur.lastrowid) + " to queue")
                 result["status"] = "success"
                 result["message"] = "Added player"
         self.write(json.dumps(result))
@@ -228,7 +241,8 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
         if player is not None:
             with db.getCur() as cur:
                 cur.execute("SELECT Phone FROM People WHERE Id = ?", (player,))
-                phone = cur.fetchone()[0]
+                row = cur.fetchone()
+                phone = row[0]
                 if phone is not None:
                     client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
 
@@ -237,6 +251,7 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                         from_="+14252767908",
                         body="Your mahjong table is opening up soon!",
                     )
+                    log.info("Notified player with ID: " + str(player))
                     result["status"] = "success"
                     result["message"] = "Notified player"
         self.write(json.dumps(result))
@@ -253,6 +268,7 @@ class TablePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
+                log.info("Moved player with ID: " + str(player) + " to table with ID: " + str(table))
                 result["status"] = "success"
                 result["message"] = "Moved player"
         self.write(json.dumps(result))
@@ -268,6 +284,7 @@ class QueuePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Queue(Id) VALUES(?)", (player,))
+                log.info("Moved player with ID: " + str(player) + " to queue")
                 result["status"] = "success"
                 result["message"] = "Moved player"
         self.write(json.dumps(result))
@@ -285,6 +302,7 @@ class BeginnerQueuePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("INSERT INTO BeginnerQueue(Id) VALUES(?)", (player,))
                 result["status"] = "success"
                 result["message"] = "Moved player"
+                log.info("Moved player with ID: " + str(player) + " to beginner queue")
         self.write(json.dumps(result))
 
 class DeletePlayerHandler(tornado.web.RequestHandler):
@@ -297,6 +315,7 @@ class DeletePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM People WHERE Id = ?", (player,))
                 result["status"] = "success"
                 result["message"] = "Deleted player"
+                log.info("Deleted player with ID: " + str(player))
         self.write(json.dumps(result))
 
 class EditPlayerHandler(tornado.web.RequestHandler):
@@ -310,6 +329,7 @@ class EditPlayerHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE People SET Name = ? WHERE Id = ?", (newname, player))
                 result["status"] = "success"
                 result["message"] = "Updated player"
+                log.info("Edited player with ID: " + str(player) + " to have name: " + str(newname))
         self.write(json.dumps(result))
 
 class EditTableHandler(tornado.web.RequestHandler):
@@ -323,6 +343,7 @@ class EditTableHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE Tables SET Name = ? WHERE Id = ?", (newname, table))
                 result["status"] = "success"
                 result["message"] = "Updated table"
+                log.info("Edited table with ID: " + str(table) + " to have name: " + str(newname))
         self.write(json.dumps(result))
 
 class MainHandler(tornado.web.RequestHandler):
@@ -380,6 +401,9 @@ def main():
     else:
         port = 5000
 
+    logging.basicConfig(filename = "mahjong.log", level=logging.INFO)
+    logging.getLogger().addHandler(logging.StreamHandler())
+    log.info("Server started")
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
     http_server.listen(os.environ.get("PORT", port))
