@@ -350,6 +350,10 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html")
 
+class ProjectorHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("projector.html")
+
 class ManageHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("manage.html")
@@ -360,6 +364,7 @@ class Application(tornado.web.Application):
 
         handlers = [
                 (r"/", MainHandler),
+                (r"/projector", ProjectorHandler),
                 (r"/manage", ManageHandler),
                 (r"/api/tables", TablesHandler),
                 (r"/api/starttable", StartTableHandler),
