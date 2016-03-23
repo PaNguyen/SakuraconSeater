@@ -1,40 +1,30 @@
-{{ #LoggedIn }}
-	<button id="addtable" onClick="addTable();">Add Table</button>
-{{ /LoggedIn }}
+<button id="addtable" onClick="addTable();">Add Table</button>
 {{#tables}}
-	<div class="table{{ #Playing }} playing{{ /Playing }}{{ #Overtime }} warn{{ /Overtime }}" data-id="{{ Id }}" data-started="{{ Started }}"{{ #x }} data-x="{{ x }}"{{ /x }}{{ #y }} data-y="{{ y }}"{{ /y }}>
-		<h2>
-			Table {{ Id }}
-			{{ #LoggedIn }}
-				<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
-			{{ /LoggedIn}}
-		</h2>
+	<div class="table{{ #Playing }} playing{{ /Playing }}{{ #Overtime }} warn{{ /Overtime }}" data-id="{{ Id }}" id="table-{{ Id }}" data-started="{{ Started }}"{{ #x }} data-x="{{ x }}"{{ /x }}{{ #y }} data-y="{{ y }}"{{ /y }}>
+		<input type="checkbox" class="beginner" id="beginner-{{ Id }}" onClick="api('beginnertable', true, {'table': {{ Id }} });" {{ #Beginner }}checked{{ /Beginner }}></input><label for="beginner-{{ Id }}"></label>
+		<span class="name" onClick="editTable({{ Id }});">{{ Name }}</span>
+		<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
 		<div class="duration">{{ Duration }}</div>
 		<ul class="players">
 			{{#Players}}
 				<li class="player" data-id="{{ Id }}" id="player-{{ Id }}">
-					<span class="name">{{ Name }}</span>
-					{{ #LoggedIn }}
-						<i class="fa fa-pencil" onClick="editPlayer({{ Id }});"></i>
-						<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
-						{{ #HasPhone }}
-							<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
-						{{ /HasPhone}}
-					{{ /LoggedIn }}
+					<span class="name" onClick="editPlayer({{ Id }});">{{ Name }}</span>
+					<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
+					{{ #HasPhone }}
+						<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
+					{{ /HasPhone}}
 				</li>
 			{{/Players}}
 		</ul>
-		{{ #LoggedIn }}
-			<div class="controls">
-				{{ #Playing }}
-					<button class="clearbutton" onClick="clearTable({{ Id }})">Clear</button>
-				{{ /Playing}}
-				{{ ^Playing }}
-					<button class="startbutton" onClick="startTable({{ Id }});">Start</button>
-					<button class="fillbutton" onClick="fillTable({{ Id }});">Fill</button>
-					<button class="notifybutton" onClick="notifyTable({{ Id }});">Notify</button>
-				{{ /Playing }}
-			</div>
-		{{ /LoggedIn }}
+		<div class="controls">
+			{{ #Playing }}
+				<button class="clearbutton" onClick="clearTable({{ Id }})">Clear</button>
+			{{ /Playing}}
+			{{ ^Playing }}
+				<button class="startbutton" onClick="startTable({{ Id }});">Start</button>
+				<button class="fillbutton" onClick="fillTable({{ Id }});">Fill</button>
+				<button class="notifybutton" onClick="notifyTable({{ Id }});">Notify</button>
+			{{ /Playing }}
+		</div>
 	</div>
 {{/tables}}

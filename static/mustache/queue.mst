@@ -10,14 +10,15 @@
 			<option value="4">4 players</option>
 		</select>
 		<button id="signup" onClick="signup();">Signup</button>
+		<button id="beginnersignup" onClick="beginnerSignup();">Beginner Signup</button>
 	</div>
 {{ /LoggedIn }}
 <ul id="playerqueue">
+	<h1>Intermediate</h1>
 	{{#queue}}
 		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
-			<span class="name">{{ Name }}</span>
+			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
 			{{ #LoggedIn }}
-				<i class="fa fa-pencil" onClick="editPlayer({{ Id }});"></i>
 				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 				{{ #HasPhone }}
 					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
@@ -25,4 +26,18 @@
 			{{ /LoggedIn }}
 		</li>
 	{{/queue}}
+</ul>
+<ul id="beginnerqueue">
+	<h1>Beginner</h1>
+	{{#beginnerqueue}}
+		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
+			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
+			{{ #LoggedIn }}
+				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
+				{{ #HasPhone }}
+					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
+				{{ /HasPhone}}
+			{{ /LoggedIn }}
+		</li>
+	{{/beginnerqueue}}
 </ul>

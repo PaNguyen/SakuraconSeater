@@ -38,6 +38,8 @@ def init():
 
     with getCur() as cur:
         cur.execute("CREATE TABLE IF NOT EXISTS Tables(Id INTEGER PRIMARY KEY NOT NULL, \
+                Name VARCHAR(255) NOT NULL, \
+                Beginner BOOLEAN NOT NULL, \
                 Playing BOOLEAN NOT NULL, \
                 x INTEGER, y INTEGER, \
                 Started TIMESTAMP);")
@@ -54,6 +56,9 @@ def init():
                 FOREIGN KEY(PersonId) REFERENCES People(Id) ON DELETE CASCADE);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Queue(Id INTEGER PRIMARY KEY NOT NULL, \
+                FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE);")
+
+        cur.execute("CREATE TABLE IF NOT EXISTS BeginnerQueue(Id INTEGER PRIMARY KEY NOT NULL, \
                 FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Sessions(Id CHAR(16) PRIMARY KEY NOT NULL, \

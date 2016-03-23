@@ -26,17 +26,19 @@ define("port", default=5000, type=int)
 cookie_secret = util.randString(32)
 
 
-class TablesHandler(session.AuthenticatedHandler):
+class TablesHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
             tables = []
-            cur.execute("SELECT Id, Playing, Started, x, y FROM Tables")
+            cur.execute("SELECT Id, Playing, Started, x, y, Name, Beginner FROM Tables")
             for row in cur.fetchall():
                 table = {'Id': row[0],
                             'Playing': row[1],
                             'Started': str(row[2]),
                             'x': row[3],
                             'y': row[4],
+                            'Name': row[5],
+                            'Beginner': row[6],
                             'Players': []}
                 if row[2] is not None:
                     elapsed = (datetime.datetime.now() - row[2]).total_seconds()
@@ -52,17 +54,17 @@ class TablesHandler(session.AuthenticatedHandler):
                                             'Added': str(player[3])}]
                 tables += [table]
             self.write(json.dumps({'tables': tables}))
-    def handlepost(self):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         with db.getCur() as cur:
-            cur.execute("INSERT INTO Tables(Playing, Started) VALUES(0, NULL)")
+            cur.execute("INSERT INTO Tables(Playing, Started, Name, Beginner) VALUES(0, NULL, \"Untitled\", 0)")
             result["status"] = "success"
             result["message"] = "Added table"
         self.write(json.dumps(result))
 
-class StartTableHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class StartTableHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
@@ -73,23 +75,29 @@ class StartTableHandler(session.AuthenticatedHandler):
                 result["message"] = "Started table"
         self.write(json.dumps(result))
 
-class FillTableHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class FillTableHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
         if table is not None:
             with db.getCur() as cur:
+                cur.execute("SELECT Beginner FROM Tables WHERE Id = ?", (table,))
+                beginner = cur.fetchone()[0]
                 cur.execute("SELECT COUNT(*) FROM Players WHERE TableId = ?", (table,))
                 playercount = max(4 - cur.fetchone()[0], 0)
-                cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
-                cur.execute("DELETE FROM Queue LIMIT ?", (playercount,))
+                if beginner:
+                    cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, BeginnerQueue.Id FROM BeginnerQueue INNER JOIN People ON People.Id = BeginnerQueue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
+                    cur.execute("DELETE FROM BeginnerQueue WHERE Id IN (SELECT PersonId FROM Players)")
+                else:
+                    cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
+                    cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
                 result["status"] = "success"
                 result["message"] = "Started table"
         self.write(json.dumps(result))
 
-class NotifyTableHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class NotifyTableHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
@@ -111,8 +119,8 @@ class NotifyTableHandler(session.AuthenticatedHandler):
                 result["message"] = "Notified " + str(phones) + " players"
         self.write(json.dumps(result))
 
-class ClearTableHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class ClearTableHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
@@ -124,8 +132,8 @@ class ClearTableHandler(session.AuthenticatedHandler):
                 result["message"] = "Cleared table"
         self.write(json.dumps(result))
 
-class DeleteTableHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class DeleteTableHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
@@ -136,8 +144,20 @@ class DeleteTableHandler(session.AuthenticatedHandler):
                 result["message"] = "Deleted table"
         self.write(json.dumps(result))
 
-class TablePositionHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class BeginnerTableHandler(tornado.web.RequestHandler):
+    def post(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        table = self.get_argument("table", None)
+        if table is not None:
+            with db.getCur() as cur:
+                cur.execute("UPDATE TABLES SET Beginner = NOT Beginner WHERE Id = ?", (table,))
+                result["status"] = "success"
+                result["message"] = "Toggled table beginnerness"
+        self.write(json.dumps(result))
+
+class TablePositionHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         table = self.get_argument("table", None)
@@ -150,22 +170,36 @@ class TablePositionHandler(session.AuthenticatedHandler):
                 result["message"] = "Moved table"
         self.write(json.dumps(result))
 
-class QueueHandler(session.AuthenticatedHandler):
+class QueueHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
-            queue= []
             cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Queue ON Queue.Id = People.Id ORDER BY People.Added")
+            queue= []
+            position = 0
             for row in cur.fetchall():
                 queue += [{'Id': row[0],
                             'Name': row[1],
                             'HasPhone': row[2] is not None,
-                            'Added': str(row[2])}]
-            self.write(json.dumps({'queue': queue}))
-    def handlepost(self):
+                            'Added': str(row[2]),
+                            'Position': position}]
+                position += 1
+            cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN BeginnerQueue ON BeginnerQueue.Id = People.Id ORDER BY People.Added")
+            beginnerqueue = []
+            position = 0
+            for row in cur.fetchall():
+                beginnerqueue += [{'Id': row[0],
+                            'Name': row[1],
+                            'HasPhone': row[2] is not None,
+                            'Added': str(row[2]),
+                            'Position': position}]
+                position += 1
+            self.write(json.dumps({'queue': queue, 'beginnerqueue': beginnerqueue}))
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         name = self.get_argument("name", None)
         phone = self.get_argument("phone", None)
+        beginner = self.get_argument("beginner", False)
         numplayers = int(self.get_argument("numplayers", "1"))
         if name is None or name == "":
             result["message"] = "Please enter a name"
@@ -178,13 +212,16 @@ class QueueHandler(session.AuthenticatedHandler):
                     if i > 0:
                         n += " (" + str(i) + ")"
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
-                    cur.execute("INSERT INTO Queue(Id) VALUES(?)", (cur.lastrowid,))
+                    if beginner:
+                        cur.execute("INSERT INTO BeginnerQueue(Id) VALUES(?)", (cur.lastrowid,))
+                    else:
+                        cur.execute("INSERT INTO Queue(Id) VALUES(?)", (cur.lastrowid,))
                 result["status"] = "success"
                 result["message"] = "Added player"
         self.write(json.dumps(result))
 
-class NotifyPlayerHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class NotifyPlayerHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         player = self.get_argument("player", None)
@@ -204,8 +241,8 @@ class NotifyPlayerHandler(session.AuthenticatedHandler):
                     result["message"] = "Notified player"
         self.write(json.dumps(result))
 
-class TablePlayerHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class TablePlayerHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         player = self.get_argument("player", None)
@@ -213,28 +250,45 @@ class TablePlayerHandler(session.AuthenticatedHandler):
         if player is not None and table is not None:
             with db.getCur() as cur:
                 cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
                 result["status"] = "success"
                 result["message"] = "Moved player"
         self.write(json.dumps(result))
 
-class QueuePlayerHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class QueuePlayerHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         player = self.get_argument("player", None)
         if player is not None:
             with db.getCur() as cur:
                 cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Queue(Id) VALUES(?)", (player,))
                 result["status"] = "success"
                 result["message"] = "Moved player"
         self.write(json.dumps(result))
 
-class DeletePlayerHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class BeginnerQueuePlayerHandler(tornado.web.RequestHandler):
+    def post(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        player = self.get_argument("player", None)
+        if player is not None:
+            with db.getCur() as cur:
+                cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
+                cur.execute("INSERT INTO BeginnerQueue(Id) VALUES(?)", (player,))
+                result["status"] = "success"
+                result["message"] = "Moved player"
+        self.write(json.dumps(result))
+
+class DeletePlayerHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         player = self.get_argument("player", None)
@@ -245,8 +299,8 @@ class DeletePlayerHandler(session.AuthenticatedHandler):
                 result["message"] = "Deleted player"
         self.write(json.dumps(result))
 
-class EditPlayerHandler(session.AuthenticatedHandler):
-    def handlepost(self):
+class EditPlayerHandler(tornado.web.RequestHandler):
+    def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         player  = self.get_argument("player", None)
@@ -258,37 +312,26 @@ class EditPlayerHandler(session.AuthenticatedHandler):
                 result["message"] = "Updated player"
         self.write(json.dumps(result))
 
-class LoginHandler(tornado.web.RequestHandler):
-    def get(self):
-        cookie = session.getSession(self)
-        self.write(json.dumps({'loggedIn': True if session.loggedIn(cookie) else False}))
+class EditTableHandler(tornado.web.RequestHandler):
     def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
-
-        try:
-            cookie = session.getSession(self)
-            if not session.loggedIn(cookie):
-                password = self.get_argument('password', None)
-                if password is None or password == "":
-                    result["message"] = "Please enter a password"
-                else:
-                    if session.login(cookie, password):
-                        result["status"] = "success"
-                        result["message"] = "Successfully logged in"
-                    else:
-                        result["message"] = "Incorrect login details"
-            else:
+        table = self.get_argument("table", None)
+        newname = self.get_argument("newname", None)
+        if table is not None and newname is not None:
+            with db.getCur() as cur:
+                cur.execute("UPDATE Tables SET Name = ? WHERE Id = ?", (newname, table))
                 result["status"] = "success"
-                result["message"] = "Already logged in"
-        except e:
-            result["message"] = ": " + str(e)
-
+                result["message"] = "Updated table"
         self.write(json.dumps(result))
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html")
+
+class ManageHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("manage.html")
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -296,16 +339,19 @@ class Application(tornado.web.Application):
 
         handlers = [
                 (r"/", MainHandler),
-                (r"/api/login", LoginHandler),
+                (r"/manage", ManageHandler),
                 (r"/api/tables", TablesHandler),
                 (r"/api/starttable", StartTableHandler),
                 (r"/api/filltable", FillTableHandler),
                 (r"/api/notifytable", NotifyTableHandler),
                 (r"/api/cleartable", ClearTableHandler),
                 (r"/api/deletetable", DeleteTableHandler),
+                (r"/api/beginnertable", BeginnerTableHandler),
+                (r"/api/edittable", EditTableHandler),
                 (r"/api/tableposition", TablePositionHandler),
                 (r"/api/queue", QueueHandler),
                 (r"/api/queueplayer", QueuePlayerHandler),
+                (r"/api/beginnerqueueplayer", BeginnerQueuePlayerHandler),
                 (r"/api/tableplayer", TablePlayerHandler),
                 (r"/api/notifyplayer", NotifyPlayerHandler),
                 (r"/api/deleteplayer", DeletePlayerHandler),
