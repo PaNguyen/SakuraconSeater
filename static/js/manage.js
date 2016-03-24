@@ -14,8 +14,6 @@
 		//   RETRIEVAL   //
 		///////////////////
 
-		function updateTableTimes() {
-		}
 		function getTables(callback) {
 			$.getJSON('/api/tables', function(data) {
 				window.tables = data;
@@ -141,10 +139,22 @@
 					$(table).data("started-date", new Date($(table).data("started")));
 					started = $(table).data("started-date");
 				}
-				var elapsed = Math.floor((now - started));
+				var elapsed = Math.floor(now - started);
 				$(table).children(".duration").text(timeString(elapsed));
 				if(elapsed > gameDuration)
 					$(table).addClass("warn");
+			});
+			$(".player.queued, #queueeta, #beginnereta").each(function(i, player) {
+				var eta = $(player).data("eta-date");
+				if(eta === undefined) {
+					$(player).data("eta-date", new Date($(player).data("eta")));
+					eta = $(player).data("eta-date");
+				}
+				var remaining = Math.floor(eta - now);
+				if(remaining > 0)
+					$(player).children(".remaining").text(timeString(remaining));
+				else
+					$(player).children(".remaining").text("NOW");
 			});
 		}
 		var timeInterval = window.setInterval(updateTimes, 1000);

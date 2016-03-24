@@ -14,10 +14,12 @@
 	</div>
 {{ /LoggedIn }}
 <h1>Intermediate</h1>
+<h2 id="queueeta" data-eta="{{ ETA }}">ETA: <span class="remaining">{{ Remaining }}</span></h2>
 <ul id="playerqueue">
 	{{#queue}}
-		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
+		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data-eta="{{ ETA }}">
 			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
+			<span class="remaining">{{ Remaining }}</span>
 			{{ #LoggedIn }}
 				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 				{{ #HasPhone }}
@@ -28,10 +30,12 @@
 	{{/queue}}
 </ul>
 <h1>Beginner</h1>
+<h2 id="beginnereta" data-eta="{{ BeginnerETA }}">ETA: <span class="remaining">{{ BeginnerRemaining }}</span></h2>
 <ul id="beginnerqueue">
 	{{#beginnerqueue}}
-		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}">
+		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data=eta="{{ ETA }}">
 			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
+			<span class="remaining">{{ Remaining }}</span>
 			{{ #LoggedIn }}
 				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 				{{ #HasPhone }}

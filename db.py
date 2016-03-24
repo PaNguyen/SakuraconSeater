@@ -47,6 +47,7 @@ def init():
         cur.execute("CREATE TABLE IF NOT EXISTS People(Id INTEGER PRIMARY KEY NOT NULL, \
                 Name VARCHAR(255) NOT NULL, \
                 Phone VARCHAR(255) DEFAULT NULL, \
+                Notified BOOLEAN NOT NULL DEFAULT 0,\
                 Added TIMESTAMP NOT NULL)")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Players(Id INTEGER PRIMARY KEY NOT NULL, \

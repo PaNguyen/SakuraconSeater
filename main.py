@@ -27,7 +27,6 @@ define("port", default=5000, type=int)
 cookie_secret = util.randString(32)
 log = logging.getLogger("mahjong")
 
-
 class TablesHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
@@ -184,27 +183,71 @@ class TablePositionHandler(tornado.web.RequestHandler):
 class QueueHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
+            now = datetime.datetime.now()
             cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Queue ON Queue.Id = People.Id ORDER BY People.Added")
-            queue= []
+            rows = cur.fetchall()
+            cur.execute("SELECT Started FROM Tables WHERE Playing AND NOT Beginner ORDER BY Started ASC")
+            tables = cur.fetchall()
+            queue = []
             position = 0
-            for row in cur.fetchall():
+            for row in rows:
+                if len(tables) > 0:
+                    table = int(position / 4)
+                    eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
+                else:
+                    eta = now
+                remaining = (eta - now).total_seconds()
                 queue += [{'Id': row[0],
                             'Name': row[1],
                             'HasPhone': row[2] is not None,
                             'Added': str(row[2]),
-                            'Position': position}]
+                            'Position': position,
+                            'ETA': str(eta),
+                            'Remaining':util.timeString(remaining)}]
                 position += 1
+            if len(tables) > 0:
+                table = int(position / 4)
+                neweta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
+                newremaining = util.timeString((neweta - now).total_seconds())
+            else:
+                neweta = now
+                newremaining = "NOW"
             cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN BeginnerQueue ON BeginnerQueue.Id = People.Id ORDER BY People.Added")
+            rows = cur.fetchall()
+            cur.execute("SELECT Started FROM Tables WHERE Playing AND Beginner ORDER BY Started ASC")
+            tables = cur.fetchall()
             beginnerqueue = []
             position = 0
-            for row in cur.fetchall():
+            for row in rows:
+                if len(tables) > 0:
+                    table = int(position / 4)
+                    eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
+                else:
+                    eta = now
+                remaining = (eta - now).total_seconds()
                 beginnerqueue += [{'Id': row[0],
                             'Name': row[1],
                             'HasPhone': row[2] is not None,
                             'Added': str(row[2]),
-                            'Position': position}]
+                            'Position': position,
+                            'ETA': str(eta),
+                            'Remaining':util.timeString(remaining)}]
                 position += 1
-            self.write(json.dumps({'queue': queue, 'beginnerqueue': beginnerqueue}))
+            if len(tables) > 0:
+                table = int(position / 4)
+                beginnereta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
+                beginnerremaining = util.timeString((beginnereta - now).total_seconds())
+            else:
+                beginnereta = now
+                beginnerremaining = "NOW"
+            self.write(json.dumps({
+                'queue': queue,
+                'beginnerqueue': beginnerqueue,
+                'ETA': str(neweta),
+                'BeginnerETA': str(beginnereta),
+                'Remaining': newremaining,
+                'BeginnerRemaining': beginnerremaining
+            }))
     def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
@@ -392,10 +435,26 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **settings)
 
 
-def periodicCleanup():
+def periodic():
     with db.getCur() as cur:
-        cur.execute("DELETE FROM Sessions WHERE Expires <= datetime('now');")
-        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue);");
+        # cleanup
+        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue) AND Id NOT IN (SELECT Id FROM BeginnerQueue);");
+
+        # message players to be seated soon
+        cur.execute("SELECT COUNT(*) FROM Tables WHERE strftime('%s', datetime('now', 'localtime')) - strftime('%s', Started) > 50 * 60")
+        tablecount = cur.fetchone()[0]
+        cur.execute("SELECT Phone,Notified,Id FROM People ORDER BY Added LIMIT ?", (tablecount * 4,))
+        rows = cur.fetchall()
+        client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+        for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
+            log.info("Texting player with ID: " + str(i[2]))
+            client.messages.create(
+                to=i[0],
+                from_="+14252767908",
+                body="Your mahjong table is opening up soon!",
+            )
+        cur.execute("UPDATE People SET Notified = 1 LIMIT ?", (tablecount * 4,))
+
 
 def main():
     if len(sys.argv) > 1:
@@ -416,7 +475,7 @@ def main():
     signal.signal(signal.SIGINT, sigint_handler)
 
     # start it up
-    tornado.ioloop.PeriodicCallback(periodicCleanup, 60 * 60 * 1000).start() # run periodicCleanup once an hour
+    tornado.ioloop.PeriodicCallback(periodic, 10 * 1000).start()
     tornado.ioloop.IOLoop.instance().start()
 
 def sigint_handler(signum, frame):

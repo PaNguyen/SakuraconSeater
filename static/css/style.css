@@ -55,6 +55,12 @@ button:hover, a:hover  {
 	background:#ccc;
 	list-style:none;
 	border:1px solid #333;
+	padding-left:0.5em;
+	padding-right:0.5em;
+}
+
+.player > .remaining {
+	float:right;
 }
 
 #queue > h1 {
