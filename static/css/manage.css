@@ -17,7 +17,7 @@
 }
 #addtable {
 	position:absolute;
-	top:0;
+	bottom:0;
 	left:0;
 }
 
@@ -29,8 +29,8 @@ button.delete {
 .table {
 	position:absolute;
 	display:inline-block;
-	width:300px;
-	min-height:300px;
+	width:200px;
+	height:200px;
 	border:2px solid #333;
 	padding:0.25em;
 	background:#393;
@@ -52,16 +52,15 @@ button.delete {
 	color:#333;
 }
 .table > .name {
-	height:1.5em;
-	line-height:1.5em;
+	height:30px;
+	line-height:30px;
 	vertical-align:middle;
-	font-size:1.5em;
+	font-size:1.2em;
 	text-decoration:bold;
 	float:left;
 }
 .table > button {
 	float:right;
-	height:100%;
 	width:1.5em;
 	padding:0;
 	background:none;

@@ -146,7 +146,7 @@ class DeleteTableHandler(tornado.web.RequestHandler):
         table = self.get_argument("table", None)
         if table is not None:
             with db.getCur() as cur:
-                cur.execute("DELETE FROM Tables WHERE Id = ?", (table))
+                cur.execute("DELETE FROM Tables WHERE Id = ?", (table,))
                 result["status"] = "success"
                 result["message"] = "Deleted table"
                 log.info("Deleted table with ID:" + str(table))
@@ -186,60 +186,60 @@ class QueueHandler(tornado.web.RequestHandler):
             now = datetime.datetime.now()
             cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Queue ON Queue.Id = People.Id ORDER BY People.Added")
             rows = cur.fetchall()
-            cur.execute("SELECT Started FROM Tables WHERE Playing AND NOT Beginner ORDER BY Started ASC")
+            cur.execute("SELECT Started, Playing FROM Tables WHERE NOT Beginner ORDER BY Playing ASC, Started ASC")
             tables = cur.fetchall()
             queue = []
             position = 0
-            for row in rows:
-                if len(tables) > 0:
-                    table = int(position / 4)
-                    eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
-                else:
-                    eta = now
-                remaining = (eta - now).total_seconds()
-                queue += [{'Id': row[0],
-                            'Name': row[1],
-                            'HasPhone': row[2] is not None,
-                            'Added': str(row[2]),
-                            'Position': position,
-                            'ETA': str(eta),
-                            'Remaining':util.timeString(remaining)}]
-                position += 1
             if len(tables) > 0:
+                for row in rows:
+                    eta = now
+                    table = int(position / 4)
+                    if tables[table % len(tables)][1]:
+                        eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70)
+                    eta += datetime.timedelta(minutes = int(table / len(tables)) * 70)
+                    remaining = (eta - now).total_seconds()
+                    queue += [{'Id': row[0],
+                                'Name': row[1],
+                                'HasPhone': row[2] is not None,
+                                'ETA': str(eta),
+                                'Remaining':util.timeString(remaining)}]
+                    position += 1
+                neweta = now
                 table = int(position / 4)
-                neweta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
-                newremaining = util.timeString((neweta - now).total_seconds())
+                if tables[table % len(tables)][1]:
+                    neweta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70)
+                neweta += datetime.timedelta(minutes = int(table / len(tables)) * 70)
             else:
                 neweta = now
-                newremaining = "NOW"
+            newremaining = util.timeString((neweta - now).total_seconds())
             cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN BeginnerQueue ON BeginnerQueue.Id = People.Id ORDER BY People.Added")
             rows = cur.fetchall()
-            cur.execute("SELECT Started FROM Tables WHERE Playing AND Beginner ORDER BY Started ASC")
+            cur.execute("SELECT Started, Playing FROM Tables WHERE Beginner ORDER BY Started ASC")
             tables = cur.fetchall()
             beginnerqueue = []
             position = 0
-            for row in rows:
-                if len(tables) > 0:
-                    table = int(position / 4)
-                    eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
-                else:
-                    eta = now
-                remaining = (eta - now).total_seconds()
-                beginnerqueue += [{'Id': row[0],
-                            'Name': row[1],
-                            'HasPhone': row[2] is not None,
-                            'Added': str(row[2]),
-                            'Position': position,
-                            'ETA': str(eta),
-                            'Remaining':util.timeString(remaining)}]
-                position += 1
             if len(tables) > 0:
+                for row in rows:
+                    eta = now
+                    table = int(position / 4)
+                    if tables[table % len(tables)][1]:
+                        eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70)
+                    eta = eta + datetime.timedelta(minutes = int(table / len(tables)) * 70)
+                    remaining = (eta - now).total_seconds()
+                    beginnerqueue += [{'Id': row[0],
+                                'Name': row[1],
+                                'HasPhone': row[2] is not None,
+                                'ETA': str(eta),
+                                'Remaining':util.timeString(remaining)}]
+                    position += 1
+                beginnereta = now
                 table = int(position / 4)
-                beginnereta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70 + int(table / len(tables)) * 70)
-                beginnerremaining = util.timeString((beginnereta - now).total_seconds())
+                if tables[table % len(tables)][1]:
+                    beginnereta = tables[table % len(tables)][0] + datetime.timedelta(minutes = 70)
+                beginnereta += datetime.timedelta(minutes = int(table / len(tables)) * 70)
             else:
                 beginnereta = now
-                beginnerremaining = "NOW"
+            beginnerremaining = util.timeString((beginnereta - now).total_seconds())
             self.write(json.dumps({
                 'queue': queue,
                 'beginnerqueue': beginnerqueue,
@@ -265,6 +265,7 @@ class QueueHandler(tornado.web.RequestHandler):
                     n = name
                     if i > 0:
                         n += " (" + str(i) + ")"
+                        phone = None
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
                     if beginner:
                         cur.execute("INSERT INTO BeginnerQueue(Id) VALUES(?)", (cur.lastrowid,))
@@ -289,14 +290,18 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                 if phone is not None:
                     client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
 
-                    client.messages.create(
-                        to=phone,
-                        from_="+14252767908",
-                        body="Your mahjong table is opening up soon!",
-                    )
-                    log.info("Notified player with ID: " + str(player))
-                    result["status"] = "success"
-                    result["message"] = "Notified player"
+                    try:
+                        client.messages.create(
+                            to=phone,
+                            from_="+14252767908",
+                            body="Your mahjong table is opening up soon!",
+                        )
+                        log.info("Notified player with ID: " + str(player))
+                        result["status"] = "success"
+                        result["message"] = "Notified player"
+                    except:
+                        log.info("Failed to notify player with ID: " + str(player))
+                        result["message"] = "Failed to notify player"
         self.write(json.dumps(result))
 
 class TablePlayerHandler(tornado.web.RequestHandler):
@@ -441,19 +446,28 @@ def periodic():
         cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue) AND Id NOT IN (SELECT Id FROM BeginnerQueue);");
 
         # message players to be seated soon
-        cur.execute("SELECT COUNT(*) FROM Tables WHERE strftime('%s', datetime('now', 'localtime')) - strftime('%s', Started) > 50 * 60")
+        cur.execute("SELECT COUNT(*) FROM Tables WHERE NOT Playing OR strftime('%s', datetime('now', 'localtime')) - strftime('%s', Started) > 50 * 60")
         tablecount = cur.fetchone()[0]
         cur.execute("SELECT Phone,Notified,Id FROM People ORDER BY Added LIMIT ?", (tablecount * 4,))
         rows = cur.fetchall()
         client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+        texted = []
         for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
-            log.info("Texting player with ID: " + str(i[2]))
-            client.messages.create(
-                to=i[0],
-                from_="+14252767908",
-                body="Your mahjong table is opening up soon!",
-            )
-        cur.execute("UPDATE People SET Notified = 1 LIMIT ?", (tablecount * 4,))
+            try:
+                client.messages.create(
+                    to=i[0],
+                    from_="+14252767908",
+                    body="Your mahjong table is opening up in about 10 minutes!",
+                )
+                log.info("Texted player with ID: " + str(i[2]))
+                texted += [i[2]]
+            except:
+                log.info("Failed to text player with ID: " + str(i[2]))
+        if len(texted) > 0:
+            placeholder = '?'
+            placeholders = ', '.join(placeholder for _ in texted)
+            notified = "UPDATE People SET Notified = 1 WHERE Id IN (%s)" % placeholders
+            cur.execute(notified, texted)
 
 
 def main():

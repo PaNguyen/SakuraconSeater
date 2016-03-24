@@ -14,12 +14,24 @@
 		//   RETRIEVAL   //
 		///////////////////
 
-		function getTables(callback) {
+		function getTables() {
 			$.getJSON('/api/tables', function(data) {
-				window.tables = data;
+				if(!tableTemplate) {
+					window.setTimeout(getTables, 500);
+					return;
+				}
 				$("#tables").html(Mustache.render(tableTemplate, data));
+				$(".table").each(function (i, table) {
+					var x = $(table).data("x");
+					var y = $(table).data("y");
+					if(x !== undefined)
+						$(table).css({'left':x})
+					if(y !== undefined)
+						$(table).css({'top':y})
+				});
 				$(".table").draggable({
 					snap:true,
+					snapMode:"both",
 					stop:function(event, ui) {
 						$.post("/api/tableposition",
 						       {'x':ui.position.left,
@@ -29,12 +41,6 @@
 							       notify(data.message, data.status);
 						}, 'json');
 					}
-				});
-				$(".table").each(function (i, table) {
-					var x = $(table).data("x");
-					var y = $(table).data("y");
-					if(x !== undefined && y !== undefined)
-						$(table).css({'top':y,'left':x})
 				});
 				$(".players").sortable({
 					connectWith:"#playerqueue, .players, #beginnerqueue",
@@ -54,16 +60,18 @@
 								       refresh();
 							}.bind(this), 'json');
 						}
+						else
+							refresh();
 					}
 				}).disableSelection();
-
-				if(typeof callback === "function")
-					callback();
 			}).fail(window.xhrError);
 		}
-		function getQueue(callback) {
+		function getQueue() {
 			$.getJSON('/api/queue', function(data) {
-				window.tables = data;
+				if(!queueTemplate) {
+					window.setTimeout(getQueue, 500);
+					return;
+				}
 				data.LoggedIn = true;
 				$("#queue").html(Mustache.render(queueTemplate, data));
 				$("#playerqueue").sortable({
@@ -108,9 +116,6 @@
 							refresh();
 					}
 				}).disableSelection();
-
-				if(typeof callback === "function")
-					callback();
 			}).fail(window.xhrError);
 		}
 
@@ -157,7 +162,7 @@
 					$(player).children(".remaining").text("NOW");
 			});
 		}
-		var timeInterval = window.setInterval(updateTimes, 1000);
+		var timeInterval = window.setInterval(updateTimes, 1000 * 10);
 
 		///////////////////
 		//    BUTTONS    //
