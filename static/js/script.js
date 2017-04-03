@@ -10,3 +10,24 @@ window.xhrError = function(xhr, status, error) {
 	console.log(status + ": " + error);
 	console.log(xhr);
 };
+
+function notify(message, status) {
+	if(status === "error" || window.debug)
+		$.notify(message, status);
+}
+
+window.api = function(name, toRefresh, data) {
+	$.post("/api/" + name, data, function(data) {
+		$.notify(data.message, data.status);
+		if(toRefresh && data.status === "success")
+			window.refresh();
+	}, "json");
+}
+
+function getTableTypes(callback) {
+	$.getJSON("/api/tabletype", function(data) {
+		window.tableTypes = data;
+		if(typeof callback === "function")
+			callback();
+	});
+}

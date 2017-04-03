@@ -1,0 +1,14 @@
+<tr>
+	<th>Type</th>
+	<th>Duration</th>
+	<th>Players</th>
+	<th>Delete</th>
+</tr>
+{{#tabletypes}}
+	<tr>
+		<td>{{ Type }}</td>
+		<td>{{ Duration }}</td>
+		<td>{{ Players }}</td>
+		<td class="deletetype"><a onClick="deleteTableType('{{ Type }}')">X</a></td>
+	</tr>
+{{/tabletypes}}

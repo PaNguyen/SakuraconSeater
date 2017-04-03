@@ -1,0 +1,12 @@
+.section {
+	width:49%;
+	min-width:400px;
+	display:inline-block;
+}
+.preference {
+	width:100%;
+}
+.preference > label, .preference > input {
+	width:49%;
+	display:inline-block;
+}

@@ -45,5 +45,5 @@ $(function() {
 		queueTemplate = data;
 		Mustache.parse(data);
 	});
-	window.setInterval(refresh, 1000 * 10);
+	window.setInterval(refresh, 1000 * 5);
 });
