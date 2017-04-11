@@ -35,7 +35,7 @@ $(function() {
 				return;
 			}
 		}
-		$("#nextsession").text("No more teaching sessions");
+		$("#nextsession").text("No more teaching presentations");
 	}
 	function refresh() {
 		getQueue();
@@ -45,5 +45,6 @@ $(function() {
 		queueTemplate = data;
 		Mustache.parse(data);
 	});
+	refresh();
 	window.setInterval(refresh, 1000 * 5);
 });
