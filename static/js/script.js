@@ -25,9 +25,12 @@ window.api = function(name, toRefresh, data) {
 }
 
 function getTableTypes(callback) {
-	$.getJSON("/api/tabletype", function(data) {
-		window.tableTypes = data;
-		if(typeof callback === "function")
-			callback();
-	});
+	if(window.tableTypes === undefined)
+		$.getJSON("/api/tabletype", function(data) {
+			window.tableTypes = data;
+			if(typeof callback === "function")
+				callback();
+		});
+	else if(typeof callback === "function")
+		callback();
 }

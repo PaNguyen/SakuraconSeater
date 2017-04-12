@@ -21,8 +21,7 @@ $(function() {
 					return;
 				}
 				data = {'tabletypes':data};
-			console.log(data);
-				$("#tabletypes").html(Mustache.render(tableTypesTemplate, data));
+			$("#tabletypes").html(Mustache.render(tableTypesTemplate, data));
 		});
 	}
 	refresh();
@@ -42,15 +41,6 @@ $(function() {
 			addAnnouncement();
 	});
 
-	function updatePreferences() {
-		var prefs = {
-			"gameduration": $("#duration").val(),
-		 	"numplayers": $("#numplayers").val()
-		};
-		$.post("/api/preferences", {'preferences':JSON.stringify(prefs)}, function(data) {
-			$.notify(data.message, data.status);
-		}, "json");
-	}
 	function addTableType() {
 		var prefs = {
 			"type": $("#type").val(),
@@ -58,6 +48,7 @@ $(function() {
 		 	"numplayers": $("#numplayers").val()
 		};
 		window.api("addgametype", true, prefs);
+		getTableTypes();
 	}
 	window.deleteTableType = function(table) {
 		var data = {"type":table};

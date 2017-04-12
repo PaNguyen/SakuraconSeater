@@ -41,7 +41,6 @@ def init():
 
         cur.execute("CREATE TABLE IF NOT EXISTS Tables(Id INTEGER PRIMARY KEY NOT NULL, \
                 Name VARCHAR(255) NOT NULL, \
-                Beginner BOOLEAN NOT NULL, \
                 Playing BOOLEAN NOT NULL, \
                 x INTEGER, y INTEGER, \
                 Type VARCHAR(255) NOT NULL, \
@@ -61,9 +60,8 @@ def init():
                 FOREIGN KEY(PersonId) REFERENCES People(Id) ON DELETE CASCADE);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Queue(Id INTEGER PRIMARY KEY NOT NULL, \
-                FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE);")
-
-        cur.execute("CREATE TABLE IF NOT EXISTS BeginnerQueue(Id INTEGER PRIMARY KEY NOT NULL, \
+                Type VARCHAR(255) NOT NULL,\
+                FOREIGN KEY(Type) REFERENCES TableTypes(Type) ON DELETE CASCADE, \
                 FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Sessions(Id CHAR(16) PRIMARY KEY NOT NULL, \
@@ -71,6 +69,3 @@ def init():
 
         cur.execute("CREATE TABLE IF NOT EXISTS Messages(Message VARCHAR(255) NOT NULL, \
                 Date DATE)")
-
-        cur.execute("CREATE TABLE IF NOT EXISTS Preferences(Key VARCHAR(255) PRIMARY KEY NOT NULL, \
-                Val VARCHAR(255))")
