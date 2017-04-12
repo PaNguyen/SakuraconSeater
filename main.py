@@ -19,7 +19,6 @@ import logging
 import util
 import settings
 import db
-import session
 
 # import and define tornado-y things
 from tornado.options import define, options
