@@ -1,9 +1,13 @@
 <button id="addtable" onClick="addTable();">Add Table</button>
 {{#tables}}
 	<div class="table{{ #Playing }} playing{{ /Playing }}{{ #Overtime }} warn{{ /Overtime }}" data-id="{{ Id }}" id="table-{{ Id }}" data-started="{{ Started }}"{{ #x }} data-x="{{ x }}"{{ /x }}{{ #y }} data-y="{{ y }}"{{ /y }}>
-		<input type="checkbox" class="beginner" id="beginner-{{ Id }}" onClick="api('beginnertable', true, {'table': {{ Id }} });" {{ #Beginner }}checked{{ /Beginner }}></input><label for="beginner-{{ Id }}"></label>
 		<span class="name" onClick="editTable({{ Id }});">{{ Name }}</span>
 		<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
+		<select class="tabletype" data-table="{{ Id }}" data-type="{{ TableType }}">
+			{{#tabletypes}}
+				<option value="{{ Type }}">{{ Type }}</option>
+			{{/tabletypes}}
+		</select>
 		<div class="duration">{{ Duration }}</div>
 		<ul class="players">
 			{{#Players}}

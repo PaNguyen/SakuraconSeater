@@ -1,47 +1,17 @@
-{{ #LoggedIn }}
-	<div id="signupform">
-		<h1>Signup</h1>
-		<input id="name" placeholder="Name"></input>
-		<input id="phone" placeholder="Phone #"></input>
-		<select id="numplayers">
-			<option value="1" selected>1 player</option>
-			<option value="2">2 players</option>
-			<option value="3">3 players</option>
-			<option value="4">4 players</option>
-		</select>
-		<button id="signup" onClick="signup();">Signup</button>
-		<button id="beginnersignup" onClick="beginnerSignup();">Beginner Signup</button>
-	</div>
-{{ /LoggedIn }}
-<h1>Intermediate</h1>
-<h2 id="queueeta" data-eta="{{ ETA }}">ETA: <span class="remaining">{{ Remaining }}</span></h2>
-<ul id="playerqueue">
-	{{#queue}}
-		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data-eta="{{ ETA }}">
-			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
-			<span class="remaining">{{ Remaining }}</span>
-			{{ #LoggedIn }}
-				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
-				{{ #HasPhone }}
-					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
-				{{ /HasPhone}}
-			{{ /LoggedIn }}
-		</li>
-	{{/queue}}
-</ul>
-<h1>Beginner</h1>
-<h2 id="beginnereta" data-eta="{{ BeginnerETA }}">ETA: <span class="remaining">{{ BeginnerRemaining }}</span></h2>
-<ul id="beginnerqueue">
-	{{#beginnerqueue}}
-		<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data=eta="{{ ETA }}">
-			<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
-			<span class="remaining">{{ Remaining }}</span>
-			{{ #LoggedIn }}
-				<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
-				{{ #HasPhone }}
-					<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
-				{{ /HasPhone}}
-			{{ /LoggedIn }}
-		</li>
-	{{/beginnerqueue}}
-</ul>
+{{#Queues}}
+	<h1 class="queueeta" data-eta="{{ ETA }}">{{ Type }} ETA: <span class="remaining">{{ Remaining }}</span></h1>
+	<ul class="playerqueue" data-type="{{ Type }}">
+		{{#Queue}}
+			<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data-eta="{{ ETA }}">
+				<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
+				<span class="remaining">{{ Remaining }}</span>
+				{{ #LoggedIn }}
+					<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
+					{{ #HasPhone }}
+						<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
+					{{ /HasPhone}}
+				{{ /LoggedIn }}
+			</li>
+		{{/Queue}}
+	</ul>
+{{/Queues}}

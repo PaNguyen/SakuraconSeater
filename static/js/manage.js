@@ -8,6 +8,8 @@
 		var debug = true;
 		var tableTemplate;
 		var queueTemplate;
+		var signupTemplate;
+		var tableTypes;
 
 
 		///////////////////
@@ -15,108 +17,101 @@
 		///////////////////
 
 		function getTables() {
-			$.getJSON('/api/tables', function(data) {
-				if(!tableTemplate) {
-					window.setTimeout(getTables, 500);
-					return;
-				}
-				$("#tables").html(Mustache.render(tableTemplate, data));
-				$(".table").each(function (i, table) {
-					var x = $(table).data("x");
-					var y = $(table).data("y");
-					if(x !== undefined)
-						$(table).css({'left':x})
-					if(y !== undefined)
-						$(table).css({'top':y})
-				});
-				$(".table").draggable({
-					snap:true,
-					snapMode:"both",
-					stop:function(event, ui) {
-						$.post("/api/tableposition",
-						       {'x':ui.position.left,
-							       'y':ui.position.top,
-							       'table':ui.helper.data("id")},
-						       function(data) {
-							       notify(data.message, data.status);
-						}, 'json');
+			getTableTypes(function () {
+				$.getJSON('/api/tables', function(data) {
+					if(!tableTemplate) {
+						window.setTimeout(getTables, 500);
+						return;
 					}
-				});
-				$(".players").sortable({
-					connectWith:"#playerqueue, .players, #beginnerqueue",
-					update:function(event, ui) {
-						// if we're moving a queue player back to a table
-						if(this === ui.item.parent()[0] && ui.sender !== null) {
-							$.post("/api/tableplayer",
-							       {'player':ui.item.data("id"),
-								       'table':ui.item.parents(".table").data("id")},
-							       function(data) {
-								       notify(data.message, data.status);
-								       if(data.status === "error") {
-									       $(this).sortable("cancel");
-									       ui.sender.sortable("cancel");
-									       return;
-								       }
-								       refresh();
-							}.bind(this), 'json');
+					data["tabletypes"] = jQuery.extend(true, [], window.tableTypes);
+					$("#tables").html(Mustache.render(tableTemplate, data));
+					$("#tables .tabletype").change(window.tableType);
+					$(".table").each(function (i, table) {
+						var x = $(table).data("x");
+						var y = $(table).data("y");
+						if(x !== undefined)
+							$(table).css({'left':x})
+						if(y !== undefined)
+							$(table).css({'top':y})
+						var tabletype = $(this).children(".tabletype");
+						tabletype.val(tabletype.data("type"));
+					});
+					$(".table").draggable({
+						snap:true,
+						snapMode:"both",
+						stop:function(event, ui) {
+							$.post("/api/tableposition",
+										 {'x':ui.position.left,
+											 'y':ui.position.top,
+											 'table':ui.helper.data("id")},
+										 function(data) {
+											 notify(data.message, data.status);
+							}, 'json');
 						}
-						else
-							refresh();
-					}
-				}).disableSelection();
-			}).fail(window.xhrError);
+					});
+					$(".players").sortable({
+						connectWith:".playerqueue, .players",
+						update:function(event, ui) {
+							// if we're moving a queue player back to a table
+							if(this === ui.item.parent()[0] && ui.sender !== null) {
+								$.post("/api/tableplayer",
+											 {'player':ui.item.data("id"),
+												 'table':ui.item.parents(".table").data("id")},
+											 function(data) {
+												 notify(data.message, data.status);
+												 if(data.status === "error") {
+													 $(this).sortable("cancel");
+													 ui.sender.sortable("cancel");
+													 return;
+												 }
+												 refresh();
+								}.bind(this), 'json');
+							}
+							else
+								refresh();
+						}
+					}).disableSelection();
+				}).fail(window.xhrError);
+			});
 		}
 		function getQueue() {
-			$.getJSON('/api/queue', function(data) {
-				if(!queueTemplate) {
-					window.setTimeout(getQueue, 500);
-					return;
-				}
-				data.LoggedIn = true;
-				$("#queue").html(Mustache.render(queueTemplate, data));
-				$("#playerqueue").sortable({
-					connectWith:".players,#beginnerqueue",
-					update:function(event, ui) {
-						// if we're moving a table player back to the queue
-						if(this === ui.item.parent()[0] && ui.sender !== null) {
-							$.post("/api/queueplayer",
-							       {'player':ui.item.data("id")},
-							       function(data) {
-								       notify(data.message, data.status);
-								       refresh();
-
-								       if(data.status === "error") {
-									       $(this).sortable("cancel");
-									       ui.sender.sortable("cancel");
-								       }
-							}.bind(this), 'json');
-						}
-						else
-							refresh();
+			getTableTypes(function() {
+				$.getJSON('/api/queue', function(data) {
+					if(!queueTemplate) {
+						window.setTimeout(getQueue, 500);
+						return;
 					}
-				}).disableSelection();
-				$("#beginnerqueue").sortable({
-					connectWith:".players, #playerqueue",
-					update:function(event, ui) {
-						// if we're moving a table player back to the queue
-						if(this === ui.item.parent()[0] && ui.sender !== null) {
-							$.post("/api/beginnerqueueplayer",
-							       {'player':ui.item.data("id")},
-							       function(data) {
-								       notify(data.message, data.status);
-								       refresh();
+					data.LoggedIn = true;
+					$("#queue").html(Mustache.render(queueTemplate, data));
+					$(".playerqueue").sortable({
+						connectWith:".players,.playerqueue",
+						update:function(event, ui) {
+							// if we're moving a table player back to the queue
+							if(this === ui.item.parent()[0] && ui.sender !== null) {
+								$.post("/api/queueplayer",
+											 {'player':ui.item.data("id"), type:$(this).data("type")},
+											 function(data) {
+												 notify(data.message, data.status);
+												 refresh();
 
-								       if(data.status === "error") {
-									       $(this).sortable("cancel");
-									       ui.sender.sortable("cancel");
-								       }
-							}.bind(this), 'json');
+												 if(data.status === "error") {
+													 $(this).sortable("cancel");
+													 ui.sender.sortable("cancel");
+												 }
+								}.bind(this), 'json');
+							}
+							else
+								refresh();
 						}
-						else
-							refresh();
-					}
-				}).disableSelection();
-			}).fail(window.xhrError);
+					}).disableSelection();
+				}).fail(window.xhrError);
+			});
+		}
+		function getSignup() {
+			getTableTypes(function() {
+				var data = {'tabletypes': window.tableTypes};
+				$("#signupform").html(Mustache.render(signupTemplate, data));
+			});
 		}
 
 		///////////////////
@@ -131,7 +126,12 @@
 			queueTemplate = data;
 			Mustache.parse(data);
 		});
-		function refresh() {
+		$.get("/static/mustache/signup.mst", function(data) {
+			signupTemplate = data;
+			Mustache.parse(data);
+		});
+		window.refresh = function() {
+			getSignup();
 			getTables();
 			getQueue();
 		}
@@ -149,7 +149,7 @@
 				if(elapsed > gameDuration)
 					$(table).addClass("warn");
 			});
-			$(".player.queued, #queueeta, #beginnereta").each(function(i, player) {
+			$(".player.queued, .queueeta").each(function(i, player) {
 				var eta = $(player).data("eta-date");
 				if(eta === undefined) {
 					$(player).data("eta-date", new Date($(player).data("eta")));
@@ -169,79 +169,35 @@
 		///////////////////
 
 
-		function login() {
+		window.login = function() {
 			var password = $("#password").val();
 			$("#password").val("");
-			$.post("/api/login", {'password':password}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, 'json');
-		}
-		window.api = function(name, toRefresh, data) {
-			$.post("/api/" + name, data, function(data) {
-				notify(data.message, data.status);
-				if(toRefresh && data.status === "success")
-					refresh();
-			}, "json");
+			window.api("login", true, {'password':password});
 		}
 		window.addTable = function() {
-			$.post("/api/tables", function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("tables", true);
 		};
 		window.deleteTable = function(id) {
-			$.post("/api/deletetable", {'table': id}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("deletetable", true, {'table': id});
 		};
 		window.startTable = function(table) {
-			$.post("/api/starttable", {'table': table}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("starttable", true, {'table': table})
 		};
 		window.fillTable = function(table) {
-			$.post("/api/filltable", {'table': table}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("filltable", true, {'table': table});
 		};
 		window.notifyTable = function(table) {
-			$.post("/api/notifytable", {'table': table}, function(data) {
-				notify(data.message, data.status);
-			}, "json");
-		};
-		window.beginnerTable = function(table) {
-			$.post("/api/beginnertable", {'table': table}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("notifytable", false, {'table': table})
 		};
 		window.clearTable = function(table) {
-			$.post("/api/cleartable", {'table': table}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("cleartable", true, {'table': table});
 		};
 		window.editTable = function(table) {
 			var p = $("#table-" + table);
 			var n = p.children("span.name");
 			if(n.length === 0) {
 				n = p.children("input.newname");
-				$.post("/api/edittable", {'table':table, 'newname':n.val()}, function(data) {
-					notify(data.message, data.status);
-					if(data.status === "success")
-						refresh();
-				}, "json");
+				window.api("edittable", true, {'table':table, 'newname':n.val()});
 			}
 			else {
 				n.replaceWith($("<input id='table-" + table + "' type='text' class='newname' value='" + n.text() + "'></input>"));
@@ -256,39 +212,18 @@
 			var name = $("#name").val();
 			var phone = $("#phone").val();
 			var numplayers = $("#numplayers").val();
-			$.post("/api/queue", {'name':name, 'phone':phone, 'numplayers':numplayers}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
-		};
-		window.beginnerSignup = function() {
-			var name = $("#name").val();
-			var phone = $("#phone").val();
-			var numplayers = $("#numplayers").val();
-			$.post("/api/queue", {'name':name, 'phone':phone, 'numplayers':numplayers, 'beginner': true}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			var type = $("#tabletype").val();
+			window.api("queue", true, {'name':name, 'phone':phone, 'numplayers':numplayers, 'type':type});
 		};
 		window.deletePlayer = function(player) {
-			$.post("/api/deleteplayer", {'player':player}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("deleteplayer", true, {'player':player});
 		};
 		window.editPlayer = function(player) {
 			var p = $("#player-" + player);
 			var n = p.children("span.name");
 			if(n.length === 0) {
 				n = p.children("input.newname");
-				$.post("/api/editplayer", {'player':player, 'newname':n.val()}, function(data) {
-					notify(data.message, data.status);
-					if(data.status === "success")
-						refresh();
-				}, "json");
+				window.api("editplayer", true, {'player':player, 'newname':n.val()});
 			}
 			else {
 				n.replaceWith($("<input id='player-" + player + "' type='text' class='newname' value='" + n.text() + "'></input>"));
@@ -299,22 +234,13 @@
 			}
 		};
 		window.notifyPlayer = function(player) {
-			$.post("/api/notifyplayer", {'player':player}, function(data) {
-				notify(data.message, data.status);
-				if(data.status === "success")
-					refresh();
-			}, "json");
+			window.api("notifyplayer", true, {'player':player});
 		};
-
-
-		///////////////////
-		//    UTILITY    //
-		///////////////////
-
-		function notify(message, status) {
-			if(status === "error" || debug)
-				$.notify(message, status);
-		}
+		window.tableType = function() {
+			var data = {'table': $(this).data("table"), 'type': $(this).val()};
+			window.api("tabletype", true, data);
+		};
 	});
 })(jQuery);
+
 
