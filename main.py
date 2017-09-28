@@ -12,7 +12,7 @@ import tornado.web
 import tornado.template
 import signal
 import json
-from twilio.rest import TwilioRestClient
+from twilio.rest import Client
 import logging
 import datetime
 
@@ -42,7 +42,7 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                 row = cur.fetchone()
                 phone = row[0]
                 if phone is not None:
-                    client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+                    client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
 
                     try:
                         client.messages.create(
@@ -67,7 +67,6 @@ class TablePlayerHandler(tornado.web.RequestHandler):
         if player is not None and table is not None:
             with db.getCur() as cur:
                 cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
-                cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
                 log.info(str(datetime.datetime.now()) + "Moved player with ID: " + str(player) + " to table with ID: " + str(table))
@@ -146,7 +145,6 @@ class Application(tornado.web.Application):
                 (r"/api/notifytable", tables.NotifyTableHandler),
                 (r"/api/cleartable", tables.ClearTableHandler),
                 (r"/api/deletetable", tables.DeleteTableHandler),
-                (r"/api/beginnertable", tables.BeginnerTableHandler),
                 (r"/api/tabletype", tables.TableTypeHandler),
                 (r"/api/addgametype", tables.AddTableTypeHandler),
                 (r"/api/deletetabletype", tables.DeleteTableTypeHandler),
@@ -154,7 +152,6 @@ class Application(tornado.web.Application):
                 (r"/api/tableposition", tables.TablePositionHandler),
                 (r"/api/queue", queue.QueueHandler),
                 (r"/api/queueplayer", queue.QueuePlayerHandler),
-                (r"/api/beginnerqueueplayer", queue.BeginnerQueuePlayerHandler),
                 (r"/api/tableplayer", TablePlayerHandler),
                 (r"/api/notifyplayer", NotifyPlayerHandler),
                 (r"/api/deleteplayer", DeletePlayerHandler),
@@ -172,14 +169,14 @@ class Application(tornado.web.Application):
 def periodic():
     with db.getCur() as cur:
         # cleanup
-        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue) AND Id NOT IN (SELECT Id FROM BeginnerQueue);");
+        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue);");
 
         # message players to be seated soon
         cur.execute("SELECT COUNT(*) FROM Tables WHERE NOT Playing OR strftime('%s', datetime('now', 'localtime')) - strftime('%s', Started) > 50 * 60")
         tablecount = cur.fetchone()[0]
         cur.execute("SELECT Phone,Notified,Id FROM People ORDER BY Added LIMIT ?", (tablecount * 4,))
         rows = cur.fetchall()
-        client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+        client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
         texted = []
         for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
             try:

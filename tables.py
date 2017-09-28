@@ -15,7 +15,7 @@ class TablesHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
             tables = []
-            cur.execute("SELECT Id, Playing, Started, x, y, Name, Beginner, Type FROM Tables")
+            cur.execute("SELECT Id, Playing, Started, x, y, Name, Type FROM Tables")
             for row in cur.fetchall():
                 table = {'Id': row[0],
                             'Playing': row[1],
@@ -23,8 +23,7 @@ class TablesHandler(tornado.web.RequestHandler):
                             'x': row[3],
                             'y': row[4],
                             'Name': row[5],
-                            'Beginner': row[6],
-                            'TableType': row[7],
+                            'TableType': row[6],
                             'Players': []}
                 if row[2] is not None:
                     elapsed = (datetime.datetime.now() - row[2]).total_seconds()
@@ -44,10 +43,15 @@ class TablesHandler(tornado.web.RequestHandler):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         with db.getCur() as cur:
-            cur.execute("INSERT INTO Tables(Playing, Started, Name, Beginner) VALUES(0, NULL, \"Untitled\", 0)")
-            log.info("Created new table with ID:" + str(cur.lastrowid))
-            result["status"] = "success"
-            result["message"] = "Added table"
+            cur.execute("SELECT Type FROM TableTypes")
+            types = cur.fetchall()
+            if len(types) == 0:
+                result["message"] = "Please add some table types in admin panel"
+            else:
+                cur.execute("INSERT INTO Tables(Playing, Started, Name, Type) VALUES(?, NULL, ?, ?)", (0, "Untitled", types[0][0]))
+                log.info("Created new table with ID:" + str(cur.lastrowid))
+                result["status"] = "success"
+                result["message"] = "Added table"
         self.write(json.dumps(result))
 
 class StartTableHandler(tornado.web.RequestHandler):
@@ -70,18 +74,18 @@ class FillTableHandler(tornado.web.RequestHandler):
         table = self.get_argument("table", None)
         if table is not None:
             with db.getCur() as cur:
-                cur.execute("SELECT Beginner FROM Tables WHERE Id = ?", (table,))
-                beginner = cur.fetchone()[0]
+                cur.execute("SELECT TableTypes.Type, Players FROM TableTypes INNER JOIN Tables ON Tables.Type = TableTypes.Type WHERE Id = ?", (table,))
+                tableType = cur.fetchone()
                 cur.execute("SELECT COUNT(*) FROM Players WHERE TableId = ?", (table,))
-                playercount = max(int(preferences.getPreference("numplayers")) - cur.fetchone()[0], 0)
-                if beginner:
-                    cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, BeginnerQueue.Id FROM BeginnerQueue INNER JOIN People ON People.Id = BeginnerQueue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
-                    cur.execute("DELETE FROM BeginnerQueue WHERE Id IN (SELECT PersonId FROM Players)")
-                    log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " beginner queued players")
-                else:
-                    cur.execute("INSERT INTO Players(TableId, PersonId) SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id ORDER BY People.Added LIMIT ?", (table, playercount))
-                    cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
-                    log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " queued players")
+                playercount = tableType[1] - cur.fetchone()[0]
+
+                cur.execute("INSERT INTO Players(TableId, PersonId) \
+                        SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id \
+                        WHERE Queue.Type = ? ORDER BY People.Added LIMIT ?", (table, tableType[0], playercount))
+
+                cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
+                log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " queued players")
+
                 result["status"] = "success"
                 result["message"] = "Filled table"
         self.write(json.dumps(result))
@@ -135,19 +139,6 @@ class DeleteTableHandler(tornado.web.RequestHandler):
                 result["status"] = "success"
                 result["message"] = "Deleted table"
                 log.info("Deleted table with ID:" + str(table))
-        self.write(json.dumps(result))
-
-class BeginnerTableHandler(tornado.web.RequestHandler):
-    def post(self):
-        result = { 'status': "error",
-                    'message': "Unknown error occurred"}
-        table = self.get_argument("table", None)
-        if table is not None:
-            with db.getCur() as cur:
-                cur.execute("UPDATE TABLES SET Beginner = NOT Beginner WHERE Id = ?", (table,))
-                result["status"] = "success"
-                result["message"] = "Toggled table beginnerness"
-                log.info("Toggled beginerness of table with ID:" + str(table))
         self.write(json.dumps(result))
 
 class TablePositionHandler(tornado.web.RequestHandler):

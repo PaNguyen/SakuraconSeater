@@ -8,6 +8,7 @@
 		var debug = true;
 		var tableTemplate;
 		var queueTemplate;
+		var signupTemplate;
 		var tableTypes;
 
 
@@ -24,7 +25,7 @@
 					}
 					data["tabletypes"] = jQuery.extend(true, [], window.tableTypes);
 					$("#tables").html(Mustache.render(tableTemplate, data));
-					$(".tabletype").change(window.tableType);
+					$("#tables .tabletype").change(window.tableType);
 					$(".table").each(function (i, table) {
 						var x = $(table).data("x");
 						var y = $(table).data("y");
@@ -49,7 +50,7 @@
 						}
 					});
 					$(".players").sortable({
-						connectWith:"#playerqueue, .players, #beginnerqueue",
+						connectWith:".playerqueue, .players",
 						update:function(event, ui) {
 							// if we're moving a queue player back to a table
 							if(this === ui.item.parent()[0] && ui.sender !== null) {
@@ -74,56 +75,43 @@
 			});
 		}
 		function getQueue() {
-			$.getJSON('/api/queue', function(data) {
-				if(!queueTemplate) {
-					window.setTimeout(getQueue, 500);
-					return;
-				}
-				data.LoggedIn = true;
-				$("#queue").html(Mustache.render(queueTemplate, data));
-				$("#playerqueue").sortable({
-					connectWith:".players,#beginnerqueue",
-					update:function(event, ui) {
-						// if we're moving a table player back to the queue
-						if(this === ui.item.parent()[0] && ui.sender !== null) {
-							$.post("/api/queueplayer",
-							       {'player':ui.item.data("id")},
-							       function(data) {
-								       notify(data.message, data.status);
-								       refresh();
-
-								       if(data.status === "error") {
-									       $(this).sortable("cancel");
-									       ui.sender.sortable("cancel");
-								       }
-							}.bind(this), 'json');
-						}
-						else
-							refresh();
+			getTableTypes(function() {
+				$.getJSON('/api/queue', function(data) {
+					if(!queueTemplate) {
+						window.setTimeout(getQueue, 500);
+						return;
 					}
-				}).disableSelection();
-				$("#beginnerqueue").sortable({
-					connectWith:".players, #playerqueue",
-					update:function(event, ui) {
-						// if we're moving a table player back to the queue
-						if(this === ui.item.parent()[0] && ui.sender !== null) {
-							$.post("/api/beginnerqueueplayer",
-							       {'player':ui.item.data("id")},
-							       function(data) {
-								       notify(data.message, data.status);
-								       refresh();
+					data.LoggedIn = true;
+					$("#queue").html(Mustache.render(queueTemplate, data));
+					$(".playerqueue").sortable({
+						connectWith:".players,.playerqueue",
+						update:function(event, ui) {
+							// if we're moving a table player back to the queue
+							if(this === ui.item.parent()[0] && ui.sender !== null) {
+								$.post("/api/queueplayer",
+											 {'player':ui.item.data("id"), type:$(this).data("type")},
+											 function(data) {
+												 notify(data.message, data.status);
+												 refresh();
 
-								       if(data.status === "error") {
-									       $(this).sortable("cancel");
-									       ui.sender.sortable("cancel");
-								       }
-							}.bind(this), 'json');
+												 if(data.status === "error") {
+													 $(this).sortable("cancel");
+													 ui.sender.sortable("cancel");
+												 }
+								}.bind(this), 'json');
+							}
+							else
+								refresh();
 						}
-						else
-							refresh();
-					}
-				}).disableSelection();
-			}).fail(window.xhrError);
+					}).disableSelection();
+				}).fail(window.xhrError);
+			});
+		}
+		function getSignup() {
+			getTableTypes(function() {
+				var data = {'tabletypes': window.tableTypes};
+				$("#signupform").html(Mustache.render(signupTemplate, data));
+			});
 		}
 
 		///////////////////
@@ -138,7 +126,12 @@
 			queueTemplate = data;
 			Mustache.parse(data);
 		});
+		$.get("/static/mustache/signup.mst", function(data) {
+			signupTemplate = data;
+			Mustache.parse(data);
+		});
 		window.refresh = function() {
+			getSignup();
 			getTables();
 			getQueue();
 		}
@@ -156,7 +149,7 @@
 				if(elapsed > gameDuration)
 					$(table).addClass("warn");
 			});
-			$(".player.queued, #queueeta, #beginnereta").each(function(i, player) {
+			$(".player.queued, .queueeta").each(function(i, player) {
 				var eta = $(player).data("eta-date");
 				if(eta === undefined) {
 					$(player).data("eta-date", new Date($(player).data("eta")));
@@ -196,9 +189,6 @@
 		window.notifyTable = function(table) {
 			window.api("notifytable", false, {'table': table})
 		};
-		window.beginnerTable = function(table) {
-			window.api("beginnertable", true, {'table': table})
-		};
 		window.clearTable = function(table) {
 			window.api("cleartable", true, {'table': table});
 		};
@@ -222,13 +212,8 @@
 			var name = $("#name").val();
 			var phone = $("#phone").val();
 			var numplayers = $("#numplayers").val();
-			window.api("queue", true, {'name':name, 'phone':phone, 'numplayers':numplayers});
-		};
-		window.beginnerSignup = function() {
-			var name = $("#name").val();
-			var phone = $("#phone").val();
-			var numplayers = $("#numplayers").val();
-			window.api("queue", true, {'name':name, 'phone':phone, 'numplayers':numplayers, 'beginner': true})
+			var type = $("#tabletype").val();
+			window.api("queue", true, {'name':name, 'phone':phone, 'numplayers':numplayers, 'type':type});
 		};
 		window.deletePlayer = function(player) {
 			window.api("deleteplayer", true, {'player':player});

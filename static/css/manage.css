@@ -1,4 +1,4 @@
-#queue {
+#sidebar {
 	position:absolute;
 	right:0;
 	top:0;
@@ -29,8 +29,8 @@ button.delete {
 .table {
 	position:absolute;
 	display:inline-block;
-	width:200px;
-	height:200px;
+	width:220px;
+	height:220px;
 	border:2px solid #333;
 	padding:0.25em;
 	background:#393;
@@ -65,25 +65,9 @@ button.delete {
 	padding:0;
 	background:none;
 }
-.table > .beginner {
-	display:none;
-}
-.table > .beginner + label {
-	background:url("/static/images/Wakaba_mark_grey.png");
-	background-size:contain;
-	width:19px;
-	height:30px;
-	display:inline-block;
-	float:left;
-	margin-right:0.5em;
-}
-.table > .beginner:checked + label {
-	background:url("/static/images/Wakaba_mark.png");
-}
 
-
-.table > .players, #playerqueue, #beginnerqueue {
-	min-height:6em;
+.table > .players, .playerqueue {
+	min-height:3em;
 	clear:both;
 }
 
