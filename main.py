@@ -50,11 +50,11 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                             from_="+14252767908",
                             body="Your mahjong table is opening up soon!",
                         )
-                        log.info(datetime.datetime.now() + "Notified player with ID: " + str(player))
+                        log.info(str(datetime.datetime.now()) + "Notified player with ID: " + str(player))
                         result["status"] = "success"
                         result["message"] = "Notified player"
                     except:
-                        log.info(datetime.datetime.now() + "Failed to notify player with ID: " + str(player))
+                        log.info(str(datetime.datetime.now()) + "Failed to notify player with ID: " + str(player))
                         result["message"] = "Failed to notify player"
         self.write(json.dumps(result))
 
@@ -70,7 +70,7 @@ class TablePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM BeginnerQueue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
-                log.info(datetime.datetime.now() + "Moved player with ID: " + str(player) + " to table with ID: " + str(table))
+                log.info(str(datetime.datetime.now()) + "Moved player with ID: " + str(player) + " to table with ID: " + str(table))
                 result["status"] = "success"
                 result["message"] = "Moved player"
         self.write(json.dumps(result))
@@ -85,7 +85,7 @@ class DeletePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM People WHERE Id = ?", (player,))
                 result["status"] = "success"
                 result["message"] = "Deleted player"
-                log.info(datetime.datetime.now() + "Deleted player with ID: " + str(player))
+                log.info(str(datetime.datetime.now()) + "Deleted player with ID: " + str(player))
         self.write(json.dumps(result))
 
 class EditPlayerHandler(tornado.web.RequestHandler):
@@ -99,7 +99,7 @@ class EditPlayerHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE People SET Name = ? WHERE Id = ?", (newname, player))
                 result["status"] = "success"
                 result["message"] = "Updated player"
-                log.info(datetime.datetime.now() + "Edited player with ID: " + str(player) + " to have name: " + str(newname))
+                log.info(str(datetime.datetime.now()) + "Edited player with ID: " + str(player) + " to have name: " + str(newname))
         self.write(json.dumps(result))
 
 class MainHandler(tornado.web.RequestHandler):
@@ -188,10 +188,10 @@ def periodic():
                     from_="+14252767908",
                     body="Your mahjong table is opening up in about 10 minutes!",
                 )
-                log.info(datetime.datetime.now() + "Texted player with ID: " + str(i[2]))
+                log.info(str(datetime.datetime.now()) + "Texted player with ID: " + str(i[2]))
                 texted += [i[2]]
             except:
-                log.info(datetime.datetime.now() + "Failed to text player with ID: " + str(i[2]))
+                log.info(str(datetime.datetime.now()) + "Failed to text player with ID: " + str(i[2]))
         if len(texted) > 0:
             placeholder = '?'
             placeholders = ', '.join(placeholder for _ in texted)
@@ -210,7 +210,7 @@ def main():
 
     logging.basicConfig(filename = "mahjong.log", level=logging.INFO)
     logging.getLogger().addHandler(logging.StreamHandler())
-    log.infodatetime.datetime.now() + ("Server started")
+    log.info(str(datetime.datetime.now()) + "Server started")
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
     http_server.listen(os.environ.get("PORT", port))
