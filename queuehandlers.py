@@ -47,7 +47,8 @@ def getTypeQueue(tableType):
         neweta = now
         table = int(position / playercount)
         if len(tables) > 0 and tables[table % len(tables)][1]:
-            neweta = tables[table % len(tables)][0] + datetime.timedelta(minutes = duration)
+            neweta = datetime.datetime.strptime(tables[table % len(tables)][0], '%Y-%m-%d %H:%M:%S')
+            neweta += datetime.timedelta(minutes = duration)
             neweta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
         newremaining = util.timeString((neweta - now).total_seconds())
         return {

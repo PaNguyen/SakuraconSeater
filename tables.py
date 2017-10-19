@@ -4,6 +4,7 @@ import json
 import logging
 import preferences
 import datetime
+from twilio.rest import Client
 
 import util
 import db
@@ -26,7 +27,7 @@ class TablesHandler(tornado.web.RequestHandler):
                             'TableType': row[6],
                             'Players': []}
                 if row[2] is not None:
-                    elapsed = (datetime.datetime.now() - row[2]).total_seconds()
+                    elapsed = (datetime.datetime.now() - datetime.datetime.strptime(row[2], '%Y-%m-%d %H:%M:%S')).total_seconds()
                     table['Duration'] = util.timeString(elapsed),
                     if elapsed > settings.GAME_DURATION:
                         table['Overtime'] = True
@@ -98,7 +99,7 @@ class NotifyTableHandler(tornado.web.RequestHandler):
         if table is not None:
             with db.getCur() as cur:
                 cur.execute("SELECT Phone FROM People INNER JOIN Players ON PersonId = People.Id WHERE TableId = ?", (table,))
-                client = TwilioRestClient(settings.TWILIO_SID, settings.TWILIO_AUTH)
+                client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
                 phones = 0
                 for phone in cur.fetchall():
                     phone = phone[0]
