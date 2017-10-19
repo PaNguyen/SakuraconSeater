@@ -1,4 +1,4 @@
 *.log
-settings.py
+mysettings.py
 *.db
 *.pyc
