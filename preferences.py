@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import tornado.web
 import json
@@ -22,7 +22,7 @@ class PreferencesHandler(tornado.web.RequestHandler):
         preferences = self.get_argument("preferences", None)
         if preferences is not None:
             preferences = json.loads(preferences)
-            print preferences
+            print(preferences)
             if len(preferences.keys()) > 0:
                 with db.getCur() as cur:
                     query = "DELETE FROM Preferences WHERE Key IN ("
@@ -38,8 +38,8 @@ class PreferencesHandler(tornado.web.RequestHandler):
                     for key,val in  preferences.iteritems():
                         args += [key]
                         args += [val]
-                    print  query
-                    print args
+                    print(query)
+                    print(args)
                     cur.execute(query, args)
                 result = { 'status': "success",
                             'message': "Preferences updated"}

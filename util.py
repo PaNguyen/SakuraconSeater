@@ -16,4 +16,4 @@ def timeString(time):
     return ("0" + str(hours))[-2:] + ":" + ("0" + str(minutes))[-2:]
 
 def randString(length):
-	return ''.join(random.SystemRandom().choice(string.letters + string.digits) for x in range(length))
+	return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for x in range(length))

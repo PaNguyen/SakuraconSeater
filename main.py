@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 import sys
 import os.path
@@ -21,7 +21,7 @@ import settings
 import db
 
 import tables
-import queue
+import queuehandlers
 import announcement
 import preferences
 
@@ -150,8 +150,8 @@ class Application(tornado.web.Application):
                 (r"/api/deletetabletype", tables.DeleteTableTypeHandler),
                 (r"/api/edittable", tables.EditTableHandler),
                 (r"/api/tableposition", tables.TablePositionHandler),
-                (r"/api/queue", queue.QueueHandler),
-                (r"/api/queueplayer", queue.QueuePlayerHandler),
+                (r"/api/queue", queuehandlers.QueueHandler),
+                (r"/api/queueplayer", queuehandlers.QueuePlayerHandler),
                 (r"/api/tableplayer", TablePlayerHandler),
                 (r"/api/notifyplayer", NotifyPlayerHandler),
                 (r"/api/deleteplayer", DeletePlayerHandler),
