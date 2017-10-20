@@ -1,3 +1,4 @@
 Tornado
 passlib
 twilio
+cx_Freeze

@@ -131,6 +131,11 @@ class Application(tornado.web.Application):
     def __init__(self):
         db.init()
 
+        if getattr(sys, 'frozen', False):
+            curdirname = os.path.dirname(sys.executable)
+        else:
+            curdirname = os.path.dirname(os.path.realpath(__file__))
+
         handlers = [
                 (r"/", MainHandler),
                 (r"/projector", ProjectorHandler),
@@ -159,8 +164,8 @@ class Application(tornado.web.Application):
                 (r"/api/announcement", announcement.CurrentAnnouncementHandler),
         ]
         settings = dict(
-                template_path = os.path.join(os.path.dirname(__file__), "templates"),
-                static_path = os.path.join(os.path.dirname(__file__), "static"),
+                template_path = os.path.join(curdirname, "templates"),
+                static_path = os.path.join(curdirname, "static"),
                 debug = True,
                 cookie_secret = cookie_secret
         )
