@@ -30,16 +30,16 @@ class getCur():
 
 schema = collections.OrderedDict({
     'TableTypes': [
-        'Type VARCHAR(255) PRIMARY KEY NOT NULL',
+        'Type TEXT PRIMARY KEY NOT NULL',
         'Duration INTEGER',
         'Players INTEGER'
     ],
     'Tables': [
         'Id INTEGER PRIMARY KEY NOT NULL',
-        'Name VARCHAR(255) NOT NULL',
+        'Name TEXT NOT NULL',
         'Playing BOOLEAN NOT NULL',
         'x INTEGER, y INTEGER',
-        'Type VARCHAR(255) NOT NULL',
+        'Type TEXT NOT NULL',
         'Started TIMESTAMP',
         'FOREIGN KEY (Type) REFERENCES TableTypes(Type)'
     ],
@@ -64,12 +64,17 @@ schema = collections.OrderedDict({
         'FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE'
     ],
     'Sessions': [
-        'Id CHAR(16) PRIMARY KEY NOT NULL',
-        'Expires DATE'
+        'Id TEXT PRIMARY KEY NOT NULL',
+        'Expires TEXT'
     ],
     'Messages': [
-        'Message VARCHAR(255) NOT NULL',
+        'Message TEXT NOT NULL',
         'Date DATE'
+    ],
+    'Events': [
+        'Type INTEGER NOT NULL',
+        'Time TEXT',
+        'Data TEXT'
     ]
 })
 
@@ -159,7 +164,7 @@ def check_table_schema(tablename, force=False, backupname="_backup"):
                         ("SCHEMA CHANGE: Backup and recreate table {0} "
                          "to add {1}, impose {2}, correct {3}, and delete {4}))").format(
                              tablename, fields_to_add, fkeys_to_add,
-                             altered)):
+                             altered, deleted)):
                     make_backup()
                     backup = tablename + backupname
                     sql = "ALTER TABLE {0} RENAME TO {1};".format(

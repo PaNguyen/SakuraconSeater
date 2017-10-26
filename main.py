@@ -13,12 +13,12 @@ import tornado.template
 import signal
 import json
 from twilio.rest import Client
-import logging
 import datetime
 
 import util
 import settings
 import db
+import events
 
 import tables
 import queuehandlers
@@ -29,7 +29,6 @@ import preferences
 from tornado.options import define, options
 define("port", default=5000, type=int)
 cookie_secret = util.randString(32)
-log = logging.getLogger("mahjong")
 
 class NotifyPlayerHandler(tornado.web.RequestHandler):
     def post(self):
@@ -41,21 +40,21 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                 cur.execute("SELECT Phone FROM People WHERE Id = ?", (player,))
                 row = cur.fetchone()
                 phone = row[0]
-                if phone is not None:
-                    client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
+        if phone is not None:
+            client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
 
-                    try:
-                        client.messages.create(
-                            to=phone,
-                            from_="+14252767908",
-                            body="Your mahjong table is opening up soon!",
-                        )
-                        log.info(str(datetime.datetime.now()) + "Notified player with ID: " + str(player))
-                        result["status"] = "success"
-                        result["message"] = "Notified player"
-                    except:
-                        log.info(str(datetime.datetime.now()) + "Failed to notify player with ID: " + str(player))
-                        result["message"] = "Failed to notify player"
+            try:
+                client.messages.create(
+                    to=phone,
+                    from_="+14252767908",
+                    body="Your mahjong table is opening up soon!",
+                )
+                result["status"] = "success"
+                result["message"] = "Notified player"
+                events.logEvent("notify", player)
+            except:
+                events.logEvent("failnotify", player)
+                result["message"] = "Failed to notify player"
         self.write(json.dumps(result))
 
 class TablePlayerHandler(tornado.web.RequestHandler):
@@ -69,9 +68,9 @@ class TablePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
-                log.info(str(datetime.datetime.now()) + "Moved player with ID: " + str(player) + " to table with ID: " + str(table))
-                result["status"] = "success"
-                result["message"] = "Moved player"
+            result["status"] = "success"
+            result["message"] = "Moved player"
+            events.logEvent("playermovetotable", (player, table))
         self.write(json.dumps(result))
 
 class DeletePlayerHandler(tornado.web.RequestHandler):
@@ -82,9 +81,9 @@ class DeletePlayerHandler(tornado.web.RequestHandler):
         if player is not None:
             with db.getCur() as cur:
                 cur.execute("DELETE FROM People WHERE Id = ?", (player,))
-                result["status"] = "success"
-                result["message"] = "Deleted player"
-                log.info(str(datetime.datetime.now()) + "Deleted player with ID: " + str(player))
+            result["status"] = "success"
+            result["message"] = "Deleted player"
+            events.logEvent("playerdelete", player)
         self.write(json.dumps(result))
 
 class EditPlayerHandler(tornado.web.RequestHandler):
@@ -96,9 +95,9 @@ class EditPlayerHandler(tornado.web.RequestHandler):
         if player is not None and newname is not None:
             with db.getCur() as cur:
                 cur.execute("UPDATE People SET Name = ? WHERE Id = ?", (newname, player))
-                result["status"] = "success"
-                result["message"] = "Updated player"
-                log.info(str(datetime.datetime.now()) + "Edited player with ID: " + str(player) + " to have name: " + str(newname))
+            result["status"] = "success"
+            result["message"] = "Updated player"
+            events.logEvent("playerrename", (player,newname))
         self.write(json.dumps(result))
 
 class MainHandler(tornado.web.RequestHandler):
@@ -181,23 +180,24 @@ def periodic():
         tablecount = cur.fetchone()[0]
         cur.execute("SELECT Phone,Notified,Id FROM People ORDER BY Added LIMIT ?", (tablecount * 4,))
         rows = cur.fetchall()
-        client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
-        texted = []
-        for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
-            try:
-                client.messages.create(
-                    to=i[0],
-                    from_="+14252767908",
-                    body="Your mahjong table is opening up in about 10 minutes!",
-                )
-                log.info(str(datetime.datetime.now()) + "Texted player with ID: " + str(i[2]))
-                texted += [i[2]]
-            except:
-                log.info(str(datetime.datetime.now()) + "Failed to text player with ID: " + str(i[2]))
-        if len(texted) > 0:
-            placeholder = '?'
-            placeholders = ', '.join(placeholder for _ in texted)
-            notified = "UPDATE People SET Notified = 1 WHERE Id IN (%s)" % placeholders
+    client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
+    texted = []
+    for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
+        try:
+            client.messages.create(
+                to=i[0],
+                from_="+14252767908",
+                body="Your mahjong table is opening up in about 10 minutes!",
+            )
+            events.logEvent("textsent", i[2])
+            texted += [i[2]]
+        except:
+            events.logEvent("textfailed", i[2])
+    if len(texted) > 0:
+        placeholder = '?'
+        placeholders = ', '.join(placeholder for _ in texted)
+        notified = "UPDATE People SET Notified = 1 WHERE Id IN (%s)" % placeholders
+        with db.getCur() as cur:
             cur.execute(notified, texted)
 
 
@@ -210,9 +210,7 @@ def main():
     else:
         port = 5000
 
-    logging.basicConfig(filename = "mahjong.log", level=logging.INFO)
-    logging.getLogger().addHandler(logging.StreamHandler())
-    log.info(str(datetime.datetime.now()) + "Server started")
+    events.logEvent('start')
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
     http_server.listen(os.environ.get("PORT", port))

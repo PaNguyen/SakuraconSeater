@@ -9,8 +9,7 @@ from twilio.rest import Client
 import util
 import db
 import settings
-
-log = logging.getLogger("mahjong")
+import events
 
 class TablesHandler(tornado.web.RequestHandler):
     def get(self):
@@ -50,9 +49,11 @@ class TablesHandler(tornado.web.RequestHandler):
                 result["message"] = "Please add some table types in admin panel"
             else:
                 cur.execute("INSERT INTO Tables(Playing, Started, Name, Type) VALUES(?, NULL, ?, ?)", (0, "Untitled", types[0][0]))
-                log.info("Created new table with ID:" + str(cur.lastrowid))
                 result["status"] = "success"
                 result["message"] = "Added table"
+
+        if result["status"] == "success":
+            events.logEvent('tablecreate', cur.lastrowid)
         self.write(json.dumps(result))
 
 class StartTableHandler(tornado.web.RequestHandler):
@@ -63,9 +64,9 @@ class StartTableHandler(tornado.web.RequestHandler):
         if table is not None:
             with db.getCur() as cur:
                 cur.execute("UPDATE Tables SET Playing = 1, Started = datetime('now', 'localtime') WHERE Id = ?", (table,))
-                log.info("Starting table with ID:" + str(table))
-                result["status"] = "success"
-                result["message"] = "Started table"
+            result["status"] = "success"
+            result["message"] = "Started table"
+            events.logEvent('tablestart', table)
         self.write(json.dumps(result))
 
 class FillTableHandler(tornado.web.RequestHandler):
@@ -85,10 +86,9 @@ class FillTableHandler(tornado.web.RequestHandler):
                         WHERE Queue.Type = ? ORDER BY People.Added LIMIT ?", (table, tableType[0], playercount))
 
                 cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
-                log.info("Filled table with ID:" + str(table) + " with " + str(playercount) + " queued players")
-
-                result["status"] = "success"
-                result["message"] = "Filled table"
+            result["status"] = "success"
+            result["message"] = "Filled table"
+            events.logEvent('tablefill', (table, playercount))
         self.write(json.dumps(result))
 
 class NotifyTableHandler(tornado.web.RequestHandler):
@@ -110,9 +110,9 @@ class NotifyTableHandler(tornado.web.RequestHandler):
                             body="Your mahjong table is opening up soon!",
                         )
                         phones += 1
-                result["status"] = "success"
-                result["message"] = "Notified " + str(phones) + " players"
-                log.info("Notified " + str(phones) + " players from table with ID:" + str(table))
+            result["status"] = "success"
+            result["message"] = "Notified " + str(phones) + " players"
+            events.logEvent('tablenotify', (table, phones))
         self.write(json.dumps(result))
 
 class ClearTableHandler(tornado.web.RequestHandler):
@@ -124,9 +124,9 @@ class ClearTableHandler(tornado.web.RequestHandler):
             with db.getCur() as cur:
                 cur.execute("DELETE FROM Players WHERE TableId = ?", (table,))
                 cur.execute("UPDATE Tables SET Playing = 0, Started = NULL WHERE Id = ?", (table,))
-                result["status"] = "success"
-                result["message"] = "Cleared table"
-                log.info("Cleared table with ID:" + str(table))
+            result["status"] = "success"
+            result["message"] = "Cleared table"
+            events.logEvent('tableclear', table)
         self.write(json.dumps(result))
 
 class DeleteTableHandler(tornado.web.RequestHandler):
@@ -137,9 +137,9 @@ class DeleteTableHandler(tornado.web.RequestHandler):
         if table is not None:
             with db.getCur() as cur:
                 cur.execute("DELETE FROM Tables WHERE Id = ?", (table,))
-                result["status"] = "success"
-                result["message"] = "Deleted table"
-                log.info("Deleted table with ID:" + str(table))
+            result["status"] = "success"
+            result["message"] = "Deleted table"
+            events.logEvent('tabledelete', table)
         self.write(json.dumps(result))
 
 class TablePositionHandler(tornado.web.RequestHandler):
@@ -154,7 +154,6 @@ class TablePositionHandler(tornado.web.RequestHandler):
                 cur.execute("UPDATE Tables SET x = ?, y = ? WHERE Id = ?", (x, y, table))
                 result["status"] = "success"
                 result["message"] = "Moved table"
-                log.info("Moved table with ID:" + str(table) + " to " + str(x) + "," + str(y))
         self.write(json.dumps(result))
 
 class EditTableHandler(tornado.web.RequestHandler):
@@ -166,9 +165,9 @@ class EditTableHandler(tornado.web.RequestHandler):
         if table is not None and newname is not None:
             with db.getCur() as cur:
                 cur.execute("UPDATE Tables SET Name = ? WHERE Id = ?", (newname, table))
-                result["status"] = "success"
-                result["message"] = "Updated table"
-                log.info("Edited table with ID: " + str(table) + " to have name: " + str(newname))
+            result["status"] = "success"
+            result["message"] = "Updated table"
+            events.logEvent('tablerename', (table, newname))
         self.write(json.dumps(result))
 
 class TableTypeHandler(tornado.web.RequestHandler):
@@ -188,9 +187,9 @@ class TableTypeHandler(tornado.web.RequestHandler):
         if table is not None:
             with db.getCur() as cur:
                 cur.execute("UPDATE Tables SET Type = ? WHERE Id = ?", (tabletype, table))
-                result["status"] = "success"
-                result["message"] = "TableType updated"
-                log.info("Changed TableType of table with ID:" + str(table) + " to " + str(tabletype))
+            result["status"] = "success"
+            result["message"] = "TableType updated"
+            events.logEvent('tableretype', (table, tabletype))
         self.write(json.dumps(result))
 
 class AddTableTypeHandler(tornado.web.RequestHandler):

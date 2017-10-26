@@ -17,3 +17,18 @@ def timeString(time):
 
 def randString(length):
 	return ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for x in range(length))
+
+def prompt(msg, default=None):
+    resp = None
+    accepted_responses = ['y', 'Y', 'yes', 'Yes', 'n', 'N', 'no', 'No']
+    guide = "[y/n]"
+    if default and default in accepted_responses:
+        accepted_responses.append('')
+        guide = "[Y/n]" if default.lower().startswith('y') else "[y/N]"
+    while resp not in accepted_responses:
+        resp = input("{0} {1}? ".format(msg, guide))
+        if resp not in accepted_responses:
+            print("Unrecognized response, '{0}'.\nPlease choose among {1}".
+                  format(resp, accepted_responses))
+    return (resp.lower().startswith('y') if len(resp) > 0 or default == None
+            else default.lower().startswith('y'))

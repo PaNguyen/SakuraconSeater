@@ -3,12 +3,10 @@
 import tornado.web
 import json
 import datetime
-import logging
 
 import db
 import util
-
-log = logging.getLogger("mahjong")
+import events
 
 def getTypeQueue(tableType):
     with db.getCur() as cur:
@@ -79,6 +77,7 @@ class QueueHandler(tornado.web.RequestHandler):
         else:
             if phone == "":
                 phone = None
+            ids = []
             with db.getCur() as cur:
                 for i in range(numplayers):
                     n = name
@@ -87,9 +86,10 @@ class QueueHandler(tornado.web.RequestHandler):
                         phone = None
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
                     cur.execute("INSERT INTO Queue(Id, Type) VALUES(?, ?)", (cur.lastrowid, tableType))
-                    log.info("Added player with ID: " + str(cur.lastrowid) + " to " + tableType + " queue")
-                result["status"] = "success"
-                result["message"] = "Added player"
+                    ids += [cur.lastrowid]
+            events.logEvent('playerqueueadd', (name, numplayers, ids, tableType))
+            result["status"] = "success"
+            result["message"] = "Added " + str(numplayers) + "players"
         self.write(json.dumps(result))
 
 class QueuePlayerHandler(tornado.web.RequestHandler):
@@ -103,7 +103,7 @@ class QueuePlayerHandler(tornado.web.RequestHandler):
                 cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Queue(Id, Type) VALUES(?, ?)", (player, tableType))
-                log.info("Moved player with ID: " + str(player) + " to " + tableType + " queue")
-                result["status"] = "success"
-                result["message"] = "Moved player"
+            events.logEvent('playerqueuemove', (player, tableType))
+            result["status"] = "success"
+            result["message"] = "Moved player"
         self.write(json.dumps(result))
