@@ -77,7 +77,7 @@ class QueueHandler(tornado.web.RequestHandler):
         else:
             if phone == "":
                 phone = None
-            ids = []
+            players = []
             with db.getCur() as cur:
                 for i in range(numplayers):
                     n = name
@@ -86,8 +86,9 @@ class QueueHandler(tornado.web.RequestHandler):
                         phone = None
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
                     cur.execute("INSERT INTO Queue(Id, Type) VALUES(?, ?)", (cur.lastrowid, tableType))
-                    ids += [cur.lastrowid]
-            events.logEvent('playerqueueadd', (name, numplayers, ids, tableType))
+                    players += [(cur.lastrowid, n)]
+            for player in players:
+                events.logEvent('playerqueueadd', (player[0], player[1], tableType, numplayers))
             result["status"] = "success"
             result["message"] = "Added " + str(numplayers) + "players"
         self.write(json.dumps(result))

@@ -51,9 +51,9 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
                 )
                 result["status"] = "success"
                 result["message"] = "Notified player"
-                events.logEvent("notify", player)
+                events.logEvent("textsent", player)
             except:
-                events.logEvent("failnotify", player)
+                events.logEvent("textfailed", player)
                 result["message"] = "Failed to notify player"
         self.write(json.dumps(result))
 
@@ -124,7 +124,21 @@ class AdminHandler(tornado.web.RequestHandler):
             types = []
             for row in rows:
                 types += [{'Type': row[0], 'Duration': row[1], 'Players': row[2]}]
-            self.render("admin.html", tabletypes=types)
+            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'playerqueueadd'")
+            newplayercount = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'textsent'")
+            textssent = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'tablestart'")
+            tablestarts = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'tableclear'")
+            tableclears = cur.fetchone()[0]
+            self.render("admin.html",
+                    tabletypes = types,
+                    newplayercount = newplayercount,
+                    textssent = textssent,
+                    tablestarts = tablestarts,
+                    tableclears = tableclears
+                )
 
 class Application(tornado.web.Application):
     def __init__(self):
