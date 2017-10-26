@@ -2,3 +2,5 @@
 mysettings.py
 *.db
 *.pyc
+build/
+Output/
