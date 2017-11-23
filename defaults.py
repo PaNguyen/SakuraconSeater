@@ -2,7 +2,7 @@
 
 # DB
 #  DBFILE is the name of the file that contains the scores and player database.
-DBFILE = "scores.db"
+DBFILE = "tables.db"
 DBBACKUPS = "backups"
 DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
 MEMCACHE = ""
