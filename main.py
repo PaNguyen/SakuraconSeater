@@ -124,25 +124,39 @@ class AdminHandler(tornado.web.RequestHandler):
             types = []
             for row in rows:
                 types += [{'Type': row[0], 'Duration': row[1], 'Players': row[2]}]
-            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'playerqueueadd'")
-            newplayercount = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'textsent'")
-            textssent = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'tablestart'")
-            tablestarts = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM Events WHERE Type = 'tableclear'")
-            tableclears = cur.fetchone()[0]
+
+            eventTypes = {
+                    'playerqueueadd': 'NewPlayers',
+                    'textsent': 'TextsSent',
+                    'tablestart': 'TablesStarted',
+                    'tableclear': 'TablesCleared'
+                }
+
+            grouping = "strftime('%H', Time)"
+
+            stats = {}
+            timedstats = {}
+            for event, stat in eventTypes.items():
+                cur.execute("SELECT COUNT(*) FROM Events WHERE Type = ?", (event,))
+                stats[stat] = cur.fetchone()[0]
+
+                cur.execute("SELECT {grouping}, COUNT(*) FROM Events WHERE Type = ? GROUP BY {grouping};".format(grouping = grouping), (event,))
+                counts = cur.fetchall()
+                for count in counts:
+                    if count[0] not in timedstats:
+                        timedstats[count[0]] = {}
+                    timedstats[count[0]][stat] = count[1]
+
             self.render("admin.html",
                     tabletypes = types,
-                    newplayercount = newplayercount,
-                    textssent = textssent,
-                    tablestarts = tablestarts,
-                    tableclears = tableclears
+                    stats = stats,
+                    timedstats = timedstats
                 )
 
 class Application(tornado.web.Application):
     def __init__(self):
         db.init()
+        events.logEvent('start')
 
         if getattr(sys, 'frozen', False):
             curdirname = os.path.dirname(sys.executable)
@@ -224,7 +238,6 @@ def main():
     else:
         port = 5000
 
-    events.logEvent('start')
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application(), max_buffer_size=24*1024**3)
     http_server.listen(os.environ.get("PORT", port))

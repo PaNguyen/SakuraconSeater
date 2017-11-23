@@ -34,10 +34,27 @@
 </div>
 <div id="statistics" class="section">
 	<ul>
-		<li>New Players Added: {{ newplayercount }}</li>
-		<li>Notification Texts Sent: {{ textssent }}</li>
-		<li>Tables Started: {{ tablestarts }}</li>
-		<li>Tables Cleared: {{ tableclears }}</li>
+			<li>New Players Added: {{ stats['NewPlayers'] }}</li>
+			<li>Notification Texts Sent: {{ stats['TextsSent'] }}</li>
+			<li>Tables Started: {{ stats['TablesStarted'] }}</li>
+			<li>Tables Cleared: {{ stats['TablesCleared'] }}</li>
 	</ul>
+	{% for hour, t in timedstats.items() %}
+		<ul>
+			<h2>Hour {{ hour }}</h2>
+			{% if 'NewPlayers' in t %}
+				<li>New Players Added: {{ t['NewPlayers'] }}</li>
+			{% end %}
+			{% if 'TextsSent' in t %}
+				<li>Notification Texts Sent: {{ t['TextsSent'] }}</li>
+			{% end %}
+			{% if 'TablesStarted' in t %}
+				<li>Tables Started: {{ t['TablesStarted'] }}</li>
+			{% end %}
+			{% if 'TablesCleared' in t %}
+				<li>Tables Cleared: {{ t['TablesCleared'] }}</li>
+			{% end %}
+		</ul>
+	{% end %}
 </div>
 {% end %}
