@@ -10,6 +10,7 @@
 		var queueTemplate;
 		var signupTemplate;
 		var tableTypes;
+		var editMode = false;
 
 
 		///////////////////
@@ -36,19 +37,24 @@
 						var tabletype = $(this).children(".tabletype");
 						tabletype.val(tabletype.data("type"));
 					});
-					$(".table").draggable({
-						snap:true,
-						snapMode:"both",
-						stop:function(event, ui) {
-							$.post("/api/tableposition",
-										 {'x':ui.position.left,
-											 'y':ui.position.top,
-											 'table':ui.helper.data("id")},
-										 function(data) {
-											 notify(data.message, data.status);
-							}, 'json');
-						}
-					});
+					if(editMode) {
+						console.log("Edit mode");
+						$(".table").draggable({
+							snap:true,
+							snapMode:"both",
+							stop:function(event, ui) {
+								$.post("/api/tableposition",
+											 {'x':ui.position.left,
+												 'y':ui.position.top,
+												 'table':ui.helper.data("id")},
+											 function(data) {
+												 notify(data.message, data.status);
+								}, 'json');
+							}
+						});
+						$("#addtable").css("display", "inline-block");
+						$("#editmode").text("Stop Editing");
+					}
 					$(".players").sortable({
 						connectWith:".playerqueue, .players",
 						update:function(event, ui) {
@@ -176,6 +182,11 @@
 		}
 		window.addTable = function() {
 			window.api("tables", true);
+		};
+		window.toggleEdit = function() {
+			editMode = !editMode;
+			console.log(editMode);
+			window.refresh();
 		};
 		window.deleteTable = function(id) {
 			window.api("deletetable", true, {'table': id});

@@ -1,4 +1,7 @@
-<button id="addtable" onClick="addTable();">Add Table</button>
+<div id="editbuttons">
+	<button id="addtable" style="display:none" onClick="addTable();">Add Table</button>
+	<button id="editmode" onClick="toggleEdit();">Edit Tables</button>
+</div>
 {{#tables}}
 	<div class="table{{ #Playing }} playing{{ /Playing }}{{ #Overtime }} warn{{ /Overtime }}" data-id="{{ Id }}" id="table-{{ Id }}" data-started="{{ Started }}"{{ #x }} data-x="{{ x }}"{{ /x }}{{ #y }} data-y="{{ y }}"{{ /y }}>
 		<span class="name" onClick="editTable({{ Id }});">{{ Name }}</span>

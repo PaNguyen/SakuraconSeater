@@ -15,10 +15,12 @@
 	width:95%;
 	margin-bottom:0.2em;
 }
-#addtable {
+#editbuttons {
 	position:absolute;
 	bottom:0;
 	left:0;
+	width:100%;
+	background:grey;
 }
 
 button.delete {
