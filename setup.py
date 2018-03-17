@@ -8,7 +8,7 @@ setup(name = "SakuraconSeater",
         options = {
             "build_exe": {
                 "packages": ["idna"],
-                "include_files": ["templates/", "static/"]
+                "include_files": ["templates/", "static/","sakuraconseater.bat"]
                 }
             },
-        executables = [Executable("main.py", shortcutName="Sakuracon Seater", shortcutDir="StartMenuFolder")])
+        executables = [Executable("sakuraconseater.py", shortcutName="Sakuracon Seater", shortcutDir="StartMenuFolder")])

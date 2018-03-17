@@ -5,7 +5,7 @@
 #define MyAppVersion "1.0"
 #define MyAppPublisher "Blaise Ritchie"
 #define MyAppURL "http://www.blaiseritchie.com/"
-#define MyAppExeName "main.exe"
+#define MyAppExeName "sakuraconseater.bat"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -21,6 +21,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
+
 DisableProgramGroupPage=no
 OutputBaseFilename=SakuraconSeaterInstaller
 Compression=lzma
@@ -33,15 +34,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "D:\Users\britchie\Documents\GitHub\SakuraconSeater\build\exe.win-amd64-3.6\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "build\exe.win32-3.6\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "mysettings.py"; DestDir: "{userdocs}\SakuraconSeater"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
-Name: "{group}\{#MyAppName} Web UI"; Filename: "http://127.0.0.1:5000/"
+Name: "{group}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{userdocs}\SakuraconSeater"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{commondesktop}\{#MyAppName} Web UI"; Filename: "http://127.0.0.1:5000/"; Tasks: desktopicon
+Name: "{commondesktop}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{userdocs}\SakuraconSeater"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Workingdir: "{userdocs}\SakuraconSeater"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec postinstall skipifsilent
 
