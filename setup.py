@@ -7,7 +7,7 @@ setup(name = "SakuraconSeater",
         description = "",
         options = {
             "build_exe": {
-                "packages": ["idna"],
+                "packages": ["idna","tornado","twilio","passlib"],
                 "include_files": ["templates/", "static/","sakuraconseater.bat"]
                 }
             },
