@@ -49,8 +49,8 @@ button:hover, a:hover  {
 }
 
 .player {
-	height:1.5em;
-	line-height:1.5em;
+	height:25px;
+	line-height:25px;
 	vertical-align:middle;
 	background:#ccc;
 	list-style:none;

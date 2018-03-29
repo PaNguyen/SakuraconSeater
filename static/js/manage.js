@@ -4,7 +4,6 @@
 		//    GLOBALS    //
 		///////////////////
 
-		var gameDuration = 60 * 60 * 1000;
 		var debug = true;
 		var tableTemplate;
 		var queueTemplate;
@@ -26,7 +25,6 @@
 					}
 					data["tabletypes"] = jQuery.extend(true, [], window.tableTypes);
 					$("#tables").html(Mustache.render(tableTemplate, data));
-					$("#tables .tabletype").change(window.tableType);
 					$(".table").each(function (i, table) {
 						var x = $(table).data("x");
 						var y = $(table).data("y");
@@ -34,11 +32,18 @@
 							$(table).css({'left':x})
 						if(y !== undefined)
 							$(table).css({'top':y})
-						var tabletype = $(this).children(".tabletype");
+						var tabletype = $(this).find(".tabletype");
 						tabletype.val(tabletype.data("type"));
 					});
+					$("#tables .scheduledstart").datetimepicker({'format':'Y-m-d H:i:00'});
+					$("#tables .scheduledstart").change(window.tableSchedule);
+					$("#tables .clearschedulebutton").click(function() {
+						var scheduledStart = $(this).parents(".table").find(".scheduledstart");
+						scheduledStart.val("");
+						scheduledStart.change();
+					});
 					if(editMode) {
-						console.log("Edit mode");
+						$("#tables .tabletype").change(window.tableType);
 						$(".table").draggable({
 							snap:true,
 							snapMode:"both",
@@ -54,6 +59,9 @@
 						});
 						$("#addtable").css("display", "inline-block");
 						$("#editmode").text("Stop Editing");
+					}
+					else {
+						$("#tables .tabletype").attr("disabled", true);
 					}
 					$(".players").sortable({
 						connectWith:".playerqueue, .players",
@@ -89,6 +97,7 @@
 					}
 					data.LoggedIn = true;
 					$("#queue").html(Mustache.render(queueTemplate, data));
+					updateTimes();
 					$(".playerqueue").sortable({
 						connectWith:".players,.playerqueue",
 						update:function(event, ui) {
@@ -114,8 +123,12 @@
 			});
 		}
 		function getSignup() {
-			getTableTypes(function() {
-				var data = {'tabletypes': window.tableTypes};
+			if(!signupTemplate) {
+				window.setTimeout(getSignup, 500);
+				return;
+			}
+			getTableTypes(function(tableTypes) {
+				var data = {'tabletypes': tableTypes};
 				$("#signupform").html(Mustache.render(signupTemplate, data));
 			});
 		}
@@ -151,21 +164,28 @@
 					started = $(table).data("started-date");
 				}
 				var elapsed = Math.floor(now - started);
-				$(table).children(".duration").text(timeString(elapsed));
-				if(elapsed > gameDuration)
+				$(table).children(".elapsed").text(timeString(elapsed));
+				if(elapsed > $(table).data('duration') * 60 * 1000)
 					$(table).addClass("warn");
 			});
 			$(".player.queued, .queueeta").each(function(i, player) {
 				var eta = $(player).data("eta-date");
 				if(eta === undefined) {
-					$(player).data("eta-date", new Date($(player).data("eta")));
-					eta = $(player).data("eta-date");
+					var eta = new Date($(player).data("eta"));
+					if(!isNaN(eta.getTime())) {
+						$(player).data("eta-date", eta);
+						eta = $(player).data("eta-date");
+					}
+					else
+						eta = undefined;
 				}
-				var remaining = Math.floor(eta - now);
-				if(remaining > 0)
-					$(player).children(".remaining").text(timeString(remaining));
-				else
-					$(player).children(".remaining").text("NOW");
+				if(eta !== undefined) {
+					var remaining = Math.floor(eta - now);
+					if(remaining > 0)
+						$(player).children(".remaining").text(timeString(remaining));
+					else
+						$(player).children(".remaining").text("NOW");
+				}
 			});
 		}
 		var timeInterval = window.setInterval(updateTimes, 1000 * 10);
@@ -185,7 +205,6 @@
 		};
 		window.toggleEdit = function() {
 			editMode = !editMode;
-			console.log(editMode);
 			window.refresh();
 		};
 		window.deleteTable = function(id) {
@@ -250,6 +269,10 @@
 		window.tableType = function() {
 			var data = {'table': $(this).data("table"), 'type': $(this).val()};
 			window.api("tabletype", true, data);
+		};
+		window.tableSchedule = function() {
+			var data = {'table': $(this).data("table"), 'time': $(this).val()};
+			window.api("tableschedule", true, data);
 		};
 	});
 })(jQuery);

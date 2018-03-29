@@ -12,13 +12,13 @@ import tornado.web
 import tornado.template
 import signal
 import json
-from twilio.rest import Client
 import datetime
 
 import util
 import settings
 import db
 import events
+import notifications
 
 import tables
 import queuehandlers
@@ -30,33 +30,6 @@ from tornado.options import define, options
 define("port", default=5000, type=int)
 cookie_secret = util.randString(32)
 
-class NotifyPlayerHandler(tornado.web.RequestHandler):
-    def post(self):
-        result = { 'status': "error",
-                    'message': "Unknown error occurred"}
-        player = self.get_argument("player", None)
-        if player is not None:
-            with db.getCur() as cur:
-                cur.execute("SELECT Phone FROM People WHERE Id = ?", (player,))
-                row = cur.fetchone()
-                phone = row[0]
-        if phone is not None:
-            client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
-
-            try:
-                client.messages.create(
-                    to=phone,
-                    from_="+14252767908",
-                    body="Your mahjong table is opening up soon!",
-                )
-                result["status"] = "success"
-                result["message"] = "Notified player"
-                events.logEvent("textsent", player)
-            except:
-                events.logEvent("textfailed", player)
-                result["message"] = "Failed to notify player"
-        self.write(json.dumps(result))
-
 class TablePlayerHandler(tornado.web.RequestHandler):
     def post(self):
         result = { 'status': "error",
@@ -65,7 +38,7 @@ class TablePlayerHandler(tornado.web.RequestHandler):
         table = self.get_argument("table", None)
         if player is not None and table is not None:
             with db.getCur() as cur:
-                cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM Queue WHERE Person = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
                 cur.execute("INSERT INTO Players(TableId, PersonId) VALUES(?, ?)", (table, player))
             result["status"] = "success"
@@ -174,10 +147,12 @@ class Application(tornado.web.Application):
                 (r"/api/tables", tables.TablesHandler),
                 (r"/api/starttable", tables.StartTableHandler),
                 (r"/api/filltable", tables.FillTableHandler),
-                (r"/api/notifytable", tables.NotifyTableHandler),
+                (r"/api/notifytable", notifications.NotifyTableHandler),
+                (r"/api/notifyplayer", notifications.NotifyPlayerHandler),
                 (r"/api/cleartable", tables.ClearTableHandler),
                 (r"/api/deletetable", tables.DeleteTableHandler),
                 (r"/api/tabletype", tables.TableTypeHandler),
+                (r"/api/tableschedule", tables.ScheduleTableHandler),
                 (r"/api/addgametype", tables.AddTableTypeHandler),
                 (r"/api/deletetabletype", tables.DeleteTableTypeHandler),
                 (r"/api/edittable", tables.EditTableHandler),
@@ -185,10 +160,11 @@ class Application(tornado.web.Application):
                 (r"/api/queue", queuehandlers.QueueHandler),
                 (r"/api/queueplayer", queuehandlers.QueuePlayerHandler),
                 (r"/api/tableplayer", TablePlayerHandler),
-                (r"/api/notifyplayer", NotifyPlayerHandler),
                 (r"/api/deleteplayer", DeletePlayerHandler),
                 (r"/api/editplayer", EditPlayerHandler),
                 (r"/api/announcement", announcement.CurrentAnnouncementHandler),
+                (r"/api/teachingsessions", announcement.TeachingSessionsHandler),
+                (r"/api/deleteteachingsession", announcement.DeleteTeachingSessionHandler),
         ]
         settings = dict(
                 template_path = os.path.join(curdirname, "templates"),
@@ -201,33 +177,8 @@ class Application(tornado.web.Application):
 def periodic():
     with db.getCur() as cur:
         # cleanup
-        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Id FROM Queue);");
-
-        # message players to be seated soon
-        cur.execute("SELECT COUNT(*) FROM Tables WHERE NOT Playing OR strftime('%s', datetime('now', 'localtime')) - strftime('%s', Started) > 50 * 60")
-        tablecount = cur.fetchone()[0]
-        cur.execute("SELECT Phone,Notified,Id FROM People ORDER BY Added LIMIT ?", (tablecount * 4,))
-        rows = cur.fetchall()
-    client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
-    texted = []
-    for i in [i for i in rows if not i[1] and i[0] and i[0] != ""]:
-        try:
-            client.messages.create(
-                to=i[0],
-                from_="+14252767908",
-                body="Your mahjong table is opening up in about 10 minutes!",
-            )
-            events.logEvent("textsent", i[2])
-            texted += [i[2]]
-        except:
-            events.logEvent("textfailed", i[2])
-    if len(texted) > 0:
-        placeholder = '?'
-        placeholders = ', '.join(placeholder for _ in texted)
-        notified = "UPDATE People SET Notified = 1 WHERE Id IN (%s)" % placeholders
-        with db.getCur() as cur:
-            cur.execute(notified, texted)
-
+        cur.execute("DELETE FROM People WHERE Id NOT IN (SELECT PersonId FROM Players) AND Id NOT IN (SELECT Person FROM Queue);");
+    notifications.sendNotifications()
 
 def main():
     if len(sys.argv) > 1:

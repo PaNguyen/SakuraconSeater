@@ -1,7 +1,9 @@
 .section {
-	width:49%;
-	min-width:400px;
-	display:inline-block;
+	width:100%;
+	display:block;
+	min-height:150px;
+	border:1px solid black;
+	padding:1em;
 }
 .preference {
 	width:100%;
@@ -9,4 +11,7 @@
 .preference > label, .preference > input {
 	width:49%;
 	display:inline-block;
+}
+#teachingsessionlist {
+	list-style:none;
 }

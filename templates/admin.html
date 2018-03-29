@@ -1,7 +1,7 @@
 {% extends "template.html" %}
 {% block head %}
 	<link href="{{ static_url("css/admin.css") }}" type="text/css" rel="stylesheet" />
-	<script src="{{ static_url("js/admin.js") }}" defer></script>
+	<script src="{{ static_url("js/admin.js") }}"></script>
 	<style type="text/css">
 		.deletetype {
 			width:20px;
@@ -12,11 +12,6 @@
 	</style>
 {% end %}
 {% block body %}
-<div  id="announcement" class="section">
-	<h2>Announcement</h2>
-	<input type="text" id="announcement">
-	<button id="addannouncement">Add Announcement</button>
-</div>
 <div id="gameinfo" class="section">
 	<h2>Game Info</h2>
 	<div class="preference">
@@ -32,7 +27,20 @@
 	<table id="tabletypes" class="preference">
 	</table>
 </div>
+<div  id="announcement" class="section">
+	<h2>Announcement</h2>
+	<input type="text" id="announcement" />
+	<button id="addannouncement">Add Announcement</button>
+</div>
+<div  id="teachingsessions" class="section">
+	<h2>Teaching Sessions</h2>
+	<input type="text" id="teachingsessiontime" />
+	<button id="addsession">Add Session</button>
+	<ul id="teachingsessionlist">
+	</ul>
+</div>
 <div id="statistics" class="section">
+	<h1>Statistics</h1>
 	<ul>
 			<li>New Players Added: {{ stats['NewPlayers'] }}</li>
 			<li>Notification Texts Sent: {{ stats['TextsSent'] }}</li>

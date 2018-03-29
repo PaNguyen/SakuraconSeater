@@ -16,11 +16,15 @@ function notify(message, status) {
 		$.notify(message, status);
 }
 
-window.api = function(name, toRefresh, data) {
+window.api = function(name, toRefresh, data, callback) {
 	$.post("/api/" + name, data, function(data) {
 		$.notify(data.message, data.status);
-		if(toRefresh && data.status === "success")
-			window.refresh();
+		if(data.status === "success") {
+			if(toRefresh)
+				window.refresh();
+			if(typeof callback === 'function')
+				callback(data);
+		}
 	}, "json");
 }
 
@@ -29,8 +33,8 @@ function getTableTypes(callback) {
 		$.getJSON("/api/tabletype", function(data) {
 			window.tableTypes = data;
 			if(typeof callback === "function")
-				callback();
+				callback(window.tableTypes);
 		});
 	else if(typeof callback === "function")
-		callback();
+		callback(window.tableTypes);
 }

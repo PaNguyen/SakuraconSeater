@@ -18,7 +18,7 @@ class getCur():
     def __enter__(self):
         self.con = sqlite3.connect(settings.DBFILE)
         self.cur = self.con.cursor()
-        self.cur.execute("PRAGMA foreign_keys = 1;")
+        self.cur.execute("PRAGMA foreign_keys = ON;")
         return self.cur
     def __exit__(self, type, value, traceback):
         if self.cur and self.con and not value:
@@ -38,10 +38,12 @@ schema = collections.OrderedDict({
         'Id INTEGER PRIMARY KEY NOT NULL',
         'Name TEXT NOT NULL',
         'Playing BOOLEAN NOT NULL',
-        'x INTEGER, y INTEGER',
+        'x INTEGER',
+        'y INTEGER',
         'Type TEXT NOT NULL',
         'Started TIMESTAMP',
-        'FOREIGN KEY (Type) REFERENCES TableTypes(Type)'
+        'ScheduledStart TIMESTAMP DEFAULT NULL',
+        'FOREIGN KEY (Type) REFERENCES TableTypes(Type) ON DELETE CASCADE'
     ],
     'People': [
         'Id INTEGER PRIMARY KEY NOT NULL',
@@ -58,14 +60,13 @@ schema = collections.OrderedDict({
         'FOREIGN KEY(PersonId) REFERENCES People(Id) ON DELETE CASCADE'
     ],
     'Queue': [
-        'Id INTEGER PRIMARY KEY NOT NULL',
+        'Person INTEGER PRIMARY KEY NOT NULL',
         'Type VARCHAR(255) NOT NULL',
         'FOREIGN KEY(Type) REFERENCES TableTypes(Type) ON DELETE CASCADE',
-        'FOREIGN KEY(Id) REFERENCES People(Id) ON DELETE CASCADE'
+        'FOREIGN KEY(Person) REFERENCES People(Id) ON DELETE CASCADE'
     ],
-    'Sessions': [
-        'Id TEXT PRIMARY KEY NOT NULL',
-        'Expires TEXT'
+    'TeachingSessions': [
+        'Time TIMESTAMP'
     ],
     'Messages': [
         'Message TEXT NOT NULL',

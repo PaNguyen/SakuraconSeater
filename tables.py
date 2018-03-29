@@ -14,41 +14,46 @@ import events
 class TablesHandler(tornado.web.RequestHandler):
     def get(self):
         with db.getCur() as cur:
-            tables = []
-            cur.execute("SELECT Id, Playing, Started, x, y, Name, Type FROM Tables")
-            for row in cur.fetchall():
-                table = {'Id': row[0],
-                            'Playing': row[1],
-                            'Started': str(row[2]),
-                            'x': row[3],
-                            'y': row[4],
-                            'Name': row[5],
-                            'TableType': row[6],
-                            'Players': []}
-                if row[2] is not None:
-                    elapsed = (datetime.datetime.now() - datetime.datetime.strptime(row[2], '%Y-%m-%d %H:%M:%S')).total_seconds()
-                    table['Duration'] = util.timeString(elapsed),
-                    if elapsed > settings.GAME_DURATION:
+            cols     = ['Id', 'Playing', 'Started', 'x', 'y', 'Name', 'Tables.Type', 'TableTypes.Duration', 'ScheduledStart']
+            colnames = ['Id', 'Playing', 'Started', 'x', 'y', 'Name', 'Type',        'Duration', 'ScheduledStart']
+            cur.execute(
+                    "SELECT {cols} FROM Tables "
+                    " JOIN TableTypes ON TableTypes.Type = Tables.Type".format(cols=",".join(cols))
+            )
+            tables = [dict(zip(colnames, row)) for row in cur.fetchall()]
+            for table in tables:
+                table["Players"] = []
+                if table ['Started'] is not None:
+                    elapsed = (datetime.datetime.now() - datetime.datetime.strptime(table['Started'], '%Y-%m-%d %H:%M:%S')).total_seconds()
+                    table['Elapsed'] = util.timeString(elapsed)
+                    if elapsed > table['Duration'] * 60:
                         table['Overtime'] = True
-                cur.execute("SELECT People.Id, Name, Phone, Added FROM People INNER JOIN Players ON Players.PersonId = People.Id WHERE Players.TableId = ? ORDER BY People.Added", (row[0],))
+                cur.execute(
+                        "SELECT People.Id, Name, Phone, Added FROM People "
+                        " INNER JOIN Players ON Players.PersonId = People.Id "
+                        " WHERE Players.TableId = ? ORDER BY People.Added",
+                        (table['Id'],)
+                )
 
                 for player in cur.fetchall():
                     table["Players"] += [{'Id': player[0],
                                             'Name': player[1],
                                             'HasPhone': player[2] is not None,
                                             'Added': str(player[3])}]
-                tables += [table]
             self.write(json.dumps({'tables': tables}))
     def post(self):
         result = { 'status': "error",
                     'message': "Unknown error occurred"}
         with db.getCur() as cur:
             cur.execute("SELECT Type FROM TableTypes")
-            types = cur.fetchall()
+            types = cur.fetchone()
             if len(types) == 0:
                 result["message"] = "Please add some table types in admin panel"
             else:
-                cur.execute("INSERT INTO Tables(Playing, Started, Name, Type) VALUES(?, NULL, ?, ?)", (0, "Untitled", types[0][0]))
+                cur.execute(
+                        "INSERT INTO Tables(Playing, Started, Name, Type) VALUES(?, NULL, ?, ?)",
+                        (0, "Untitled", types[0])
+                )
                 result["status"] = "success"
                 result["message"] = "Added table"
 
@@ -81,38 +86,15 @@ class FillTableHandler(tornado.web.RequestHandler):
                 cur.execute("SELECT COUNT(*) FROM Players WHERE TableId = ?", (table,))
                 playercount = tableType[1] - cur.fetchone()[0]
 
-                cur.execute("INSERT INTO Players(TableId, PersonId) \
-                        SELECT ?, Queue.Id FROM Queue INNER JOIN People ON People.Id = Queue.Id \
-                        WHERE Queue.Type = ? ORDER BY People.Added LIMIT ?", (table, tableType[0], playercount))
+                cur.execute("INSERT INTO Players(TableId, PersonId)"
+                        " SELECT ?, Queue.Person FROM Queue "
+                        " INNER JOIN People ON People.Id = Queue.Person"
+                        " WHERE Queue.Type = ? ORDER BY People.Added LIMIT ?", (table, tableType[0], playercount))
 
-                cur.execute("DELETE FROM Queue WHERE Id IN (SELECT PersonId FROM Players)")
+                cur.execute("DELETE FROM Queue WHERE Person IN (SELECT PersonId FROM Players)")
             result["status"] = "success"
             result["message"] = "Filled table"
             events.logEvent('tablefill', (table, playercount))
-        self.write(json.dumps(result))
-
-class NotifyTableHandler(tornado.web.RequestHandler):
-    def post(self):
-        result = { 'status': "error",
-                    'message': "Unknown error occurred"}
-        table = self.get_argument("table", None)
-        if table is not None:
-            with db.getCur() as cur:
-                cur.execute("SELECT Phone FROM People INNER JOIN Players ON PersonId = People.Id WHERE TableId = ?", (table,))
-                client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
-                phones = 0
-                for phone in cur.fetchall():
-                    phone = phone[0]
-                    if phone is not None and phone != "":
-                        client.messages.create(
-                            to=phone,
-                            from_="+14252767908",
-                            body="Your mahjong table is opening up soon!",
-                        )
-                        phones += 1
-            result["status"] = "success"
-            result["message"] = "Notified " + str(phones) + " players"
-            events.logEvent('tablenotify', (table, phones))
         self.write(json.dumps(result))
 
 class ClearTableHandler(tornado.web.RequestHandler):
@@ -168,6 +150,28 @@ class EditTableHandler(tornado.web.RequestHandler):
             result["status"] = "success"
             result["message"] = "Updated table"
             events.logEvent('tablerename', (table, newname))
+        self.write(json.dumps(result))
+
+class ScheduleTableHandler(tornado.web.RequestHandler):
+    def post(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        table = self.get_argument("table", None)
+        time = self.get_argument("time", None)
+        if table is not None and time is not None:
+            try:
+                if time != "":
+                    eta = datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
+                    with db.getCur() as cur:
+                        cur.execute("UPDATE Tables SET ScheduledStart = ? WHERE Id = ?", (time, table))
+                else:
+                    with db.getCur() as cur:
+                        cur.execute("UPDATE Tables SET ScheduledStart = NULL WHERE Id = ?", (table,))
+                result["status"] = "success"
+                result["message"] = "Scheduled time updated"
+                events.logEvent('tableschedule', (table, time))
+            except ValueError:
+                result["message"] = "Failed to parse time"
         self.write(json.dumps(result))
 
 class TableTypeHandler(tornado.web.RequestHandler):

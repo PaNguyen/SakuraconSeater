@@ -10,18 +10,33 @@ import events
 
 def getTypeQueue(tableType):
     with db.getCur() as cur:
-
         cur.execute("SELECT Duration, Players FROM TableTypes WHERE Type = ?", (tableType,))
         typeData = cur.fetchone()
         duration = typeData[0]
         playercount = typeData[1]
 
-        cur.execute("SELECT People.Id, Name, Phone, Added FROM People \
-                INNER JOIN Queue ON Queue.Id = People.Id WHERE Queue.Type = ? ORDER BY People.Added", (tableType,))
+        cur.execute(
+                "SELECT People.Id, Name, Phone, Added FROM People "
+                " INNER JOIN Queue ON Queue.Person = People.Id "
+                " WHERE Queue.Type = ? ORDER BY People.Added", (tableType,))
         rows = cur.fetchall()
 
-        cur.execute("SELECT Started, Playing FROM Tables WHERE Type = ? ORDER BY Playing ASC, Started ASC", (tableType,))
-        tables = cur.fetchall()
+        cols = ['Started','Playing','ScheduledStart']
+        cur.execute(
+                "SELECT {cols} FROM Tables "
+                " WHERE Type = ? AND ScheduledStart IS NULL"
+                " ORDER BY Playing ASC, Started ASC".format(cols=",".join(cols)),
+                (tableType,)
+        )
+        tables = [dict(zip(cols,row)) for row in cur.fetchall()]
+
+        cur.execute(
+                "SELECT {cols} FROM Tables "
+                " WHERE Type = ? AND ScheduledStart IS NOT NULL"
+                " ORDER BY Playing ASC, Started ASC".format(cols=",".join(cols)),
+                (tableType,)
+        )
+        scheduledtables = [dict(zip(cols,row)) for row in cur.fetchall()]
 
         now = datetime.datetime.now()
         queue = []
@@ -30,30 +45,56 @@ def getTypeQueue(tableType):
             eta = now
             table = int(position / playercount)
             if len(tables) > 0:
-                if tables[table % len(tables)][1]:
-                    eta = tables[table % len(tables)][0] + datetime.timedelta(minutes = duration)
+                if tables[table % len(tables)]['Started'] is not None:
+                    eta = datetime.datetime.strptime(tables[table % len(tables)]['Started'], '%Y-%m-%d %H:%M:%S')
+                    eta += datetime.timedelta(minutes = duration)
                 eta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
+            elif len(scheduledtables) > 0:
+                if scheduledtables[0]['ScheduledStart'] is None or table >= 1:
+                    eta = None
+                else:
+                    eta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
             else:
-                neweta = now
+                eta = None
             remaining = (eta - now).total_seconds()
+            if remaining > 0:
+                remaining = util.timeString(remaining)
+            else:
+                remaining = "NOW"
             queue += [{'Id': row[0],
                         'Name': row[1],
                         'HasPhone': row[2] is not None,
                         'ETA': str(eta),
-                        'Remaining':util.timeString(remaining)}]
+                        'Remaining': remaining}]
             position += 1
-        neweta = now
         table = int(position / playercount)
-        if len(tables) > 0 and tables[table % len(tables)][1]:
-            neweta = datetime.datetime.strptime(tables[table % len(tables)][0], '%Y-%m-%d %H:%M:%S')
-            neweta += datetime.timedelta(minutes = duration)
+        neweta = None
+        if len(tables) > 0:
+            if tables[table % len(tables)]['Playing']:
+                neweta = datetime.datetime.strptime(tables[table % len(tables)]['Started'], '%Y-%m-%d %H:%M:%S')
+                neweta += datetime.timedelta(minutes = duration)
+            else:
+                neweta = now
             neweta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
-        newremaining = util.timeString((neweta - now).total_seconds())
+        elif len(scheduledtables) > 0:
+            if table >= 1:
+                neweta = None
+            else:
+                if scheduledtables[0]['ScheduledStart'] is not None:
+                    neweta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
+        if neweta is not None:
+            newRemaining = (neweta - now).total_seconds()
+            if newRemaining > 0:
+                newRemaining = util.timeString(newRemaining)
+            else:
+                newRemaining = "NOW"
+        else:
+            newRemaining = "NEVER"
         return {
             'Type': tableType,
             'Queue': queue,
             'ETA': str(neweta),
-            'Remaining': newremaining
+            'Remaining': newRemaining
         }
 
 class QueueHandler(tornado.web.RequestHandler):
@@ -85,7 +126,7 @@ class QueueHandler(tornado.web.RequestHandler):
                         n += " (" + str(i) + ")"
                         phone = None
                     cur.execute("INSERT INTO People(Name, Phone, Added) VALUES(?, ?, datetime('now', 'localtime'))", (n, phone))
-                    cur.execute("INSERT INTO Queue(Id, Type) VALUES(?, ?)", (cur.lastrowid, tableType))
+                    cur.execute("INSERT INTO Queue(Person, Type) VALUES(?, ?)", (cur.lastrowid, tableType))
                     players += [(cur.lastrowid, n)]
             for player in players:
                 events.logEvent('playerqueueadd', (player[0], player[1], tableType, numplayers))
@@ -101,9 +142,9 @@ class QueuePlayerHandler(tornado.web.RequestHandler):
         tableType = self.get_argument("type", None)
         if player is not None:
             with db.getCur() as cur:
-                cur.execute("DELETE FROM Queue WHERE Id = ?", (player,))
+                cur.execute("DELETE FROM Queue WHERE Person = ?", (player,))
                 cur.execute("DELETE FROM Players WHERE PersonId = ?", (player,))
-                cur.execute("INSERT INTO Queue(Id, Type) VALUES(?, ?)", (player, tableType))
+                cur.execute("INSERT INTO Queue(Person, Type) VALUES(?, ?)", (player, tableType))
             events.logEvent('playerqueuemove', (player, tableType))
             result["status"] = "success"
             result["message"] = "Moved player"

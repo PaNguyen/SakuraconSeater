@@ -17,14 +17,11 @@
 #DBFILE = "tables.db"
 #DBBACKUPS = "backups"
 #DBDATEFORMAT = "%Y-%m-%d-%H-%M-%S"
-#MEMCACHE = ""
-
-# PASSWORD is the admin password for managing your instance
-#PASSWORD='$pbkdf2-sha256$29000$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
 # TWILIO settings for the Twilio text API
-#TWILIO_SID="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-#TWILIO_AUTH="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#TWILIO_SID=""
+#TWILIO_AUTH=""
+#TWILIO_NUMBER=""
 
-# default GAME_DURATION
-#GAME_DURATION=60 * 60
+#TEXT_FMT="Your table is opening up {}"
+#NOTIFY_MINUTES=10

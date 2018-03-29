@@ -31,3 +31,33 @@ class CurrentAnnouncementHandler(tornado.web.RequestHandler):
             result = { 'status': "success",
                         'message': "Announcement updated"}
         self.write(json.dumps(result))
+
+class TeachingSessionsHandler(tornado.web.RequestHandler):
+    def get(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        with db.getCur() as cur:
+            cur.execute("SELECT Time FROM TeachingSessions ORDER BY Time ASC")
+            result["status"] = "success"
+            result["times"] = [{'Time':row[0]} for row in cur.fetchall()]
+        self.write(json.dumps(result))
+    def post(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        time = self.get_argument("time", None)
+        with db.getCur() as cur:
+            cur.execute("INSERT INTO TeachingSessions(Time) VALUES(?)", (time,))
+            result = { 'status': "success",
+                        'message': "Teaching sessions updated"}
+        self.write(json.dumps(result))
+
+class DeleteTeachingSessionHandler(tornado.web.RequestHandler):
+    def post(self):
+        result = { 'status': "error",
+                    'message': "Unknown error occurred"}
+        time = self.get_argument("time", None)
+        with db.getCur() as cur:
+            cur.execute("DELETE FROM TeachingSessions WHERE Time = ?", (time,))
+            result = { 'status': "success",
+                        'message': "Teaching sessions updated"}
+        self.write(json.dumps(result))
