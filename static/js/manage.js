@@ -223,8 +223,10 @@
 			window.api("cleartable", true, {'table': table});
 		};
 		window.editTable = function(table) {
+			if(!editMode)
+				return;
 			var p = $("#table-" + table);
-			var n = p.children("span.name");
+			var n = p.children("div.name");
 			if(n.length === 0) {
 				n = p.children("input.newname");
 				window.api("edittable", true, {'table':table, 'newname':n.val()});
