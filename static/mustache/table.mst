@@ -35,13 +35,11 @@
 				<button class="notifybutton" onClick="notifyTable({{ Id }});">Notify</button>
 				<button class="clearschedulebutton">Clear Schedule</button>
 				<div class="inputs">
-					{{#tabletypes.1}}
 					<select class="tabletype" data-table="{{ Id }}" data-type="{{ Type }}">
 						{{#tabletypes}}
 							<option value="{{ Type }}">{{ Type }}</option>
 						{{/tabletypes}}
 					</select>
-					{{/tabletypes.1}}
 					<input type="text" class="scheduledstart" value="{{ ScheduledStart }}" data-table="{{ Id }}" placeholder="Scheduled Start"/>
 				</div>
 			{{ /Playing }}
