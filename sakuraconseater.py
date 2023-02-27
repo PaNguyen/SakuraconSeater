@@ -169,7 +169,6 @@ class Application(tornado.web.Application):
         settings = dict(
                 template_path = os.path.join(curdirname, "templates"),
                 static_path = os.path.join(curdirname, "static"),
-                debug = True,
                 cookie_secret = cookie_secret
         )
         tornado.web.Application.__init__(self, handlers, **settings)

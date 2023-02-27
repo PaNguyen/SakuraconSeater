@@ -11,8 +11,11 @@
 		{{ #y }}data-y="{{ y }}"{{ /y }}
 		data-duration="{{ Duration }}">
 
-		<div class="name" onClick="editTable({{ Id }});">{{ Name }}</div>
-		<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
+		<div class="topbar">
+			<span class="name" onClick="editTable({{ Id }});">{{ Name }}</span>
+			<span class="tabletypedisp">{{ Type }}</span>
+			<button class="delete" onClick="deleteTable({{ Id }});">&times;</button>
+		</div>
 		<div class="elapsed">{{ Elapsed }}</div>
 		<ul class="players">
 			{{#Players}}

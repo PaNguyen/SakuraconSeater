@@ -59,7 +59,7 @@ button:hover, a:hover  {
 	padding-right:0.5em;
 }
 
-.player > .remaining {
+.player > .remaining , .player > .elapsed {
 	float:right;
 }
 

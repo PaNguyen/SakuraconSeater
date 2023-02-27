@@ -2,15 +2,19 @@
 	<h1 class="queueeta" data-eta="{{ ETA }}">{{ Type }} ETA: <span class="remaining">{{ Remaining }}</span></h1>
 	<ul class="playerqueue" data-type="{{ Type }}">
 		{{#Queue}}
-			<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data-eta="{{ ETA }}">
+			<li class="player queued" data-id="{{ Id }}" id="player-{{ Id }}" data-added="{{ Added }}" data-eta="{{ ETA }}">
 				<span class="name"{{ #LoggedIn }} onClick="editPlayer({{ Id }});"{{ /LoggedIn }}>{{ Name }}</span>
-				<span class="remaining">{{ Remaining }}</span>
+				{{ ^LoggedIn }}
+					<span class="remaining">{{ Remaining }}</span>
+				{{ /LoggedIn }}
 				{{ #LoggedIn }}
+					<span class="elapsed">{{ Elapsed }}</span>
 					<button class="delete" onClick="deletePlayer({{ Id }});">&times;</button>
 					{{ #HasPhone }}
 						<button class="notify" onClick="notifyPlayer({{ Id }});">📱</button>
 					{{ /HasPhone}}
 				{{ /LoggedIn }}
+
 			</li>
 		{{/Queue}}
 	</ul>

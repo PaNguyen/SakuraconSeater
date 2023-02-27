@@ -6,6 +6,10 @@
 	height:100%;
 	background:#ddd;
 	border-left:3px solid #333;
+	/* Scrolling the sidebar would be nice but
+	 * it causes bugs with jQuery UI
+	 * overflow-y:scroll;
+	*/
 }
 #signupform {
 	margin-bottom:1em;
@@ -62,28 +66,35 @@ button.delete {
 .table.warn > button.delete {
 	color:#333;
 }
-.table > .name {
+.table > .topbar {
 	height:30px;
 	line-height:30px;
 	vertical-align:middle;
 	font-size:20px;
 	text-decoration:bold;
-	width:100%;
 	margin:0;
+	padding-top:0;
 	padding-left:5px;
+	padding-right:5px;
+	width: 100%;
 	background:rgba(0,0,0,0.2);
 }
-.table > button.delete {
+.table > .topbar > span.tabletypedisp {
+	position:absolute;
+	text-align: right;
+	right: 1.5em;
+}
+.table > .topbar > button.delete {
+	width:1.5em;
 	position:absolute;
 	top:0;
 	right:0;
-	width:1.5em;
 	padding:0;
 	background:none;
 }
 
 .table > .players, .playerqueue {
-	min-height:3em;
+	min-height:150px;
 	clear:both;
 }
 

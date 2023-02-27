@@ -19,7 +19,7 @@ def getTypeQueue(tableType):
                 "SELECT People.Id, Name, Phone, Added FROM People "
                 " INNER JOIN Queue ON Queue.Person = People.Id "
                 " WHERE Queue.Type = ? ORDER BY People.Added", (tableType,))
-        rows = cur.fetchall()
+        people = cur.fetchall()
 
         cols = ['Started','Playing','ScheduledStart']
         cur.execute(
@@ -38,32 +38,51 @@ def getTypeQueue(tableType):
         )
         scheduledtables = [dict(zip(cols,row)) for row in cur.fetchall()]
 
+        ReadTime = lambda t: datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S')
+
         now = datetime.datetime.now()
         queue = []
         position = 0
-        for row in rows:
+        for person in people:
+            id, name, phone, added = person
+            added = ReadTime(added)
+
             eta = now
             table = int(position / playercount)
             if len(tables) > 0:
                 if tables[table % len(tables)]['Started'] is not None:
-                    eta = datetime.datetime.strptime(tables[table % len(tables)]['Started'], '%Y-%m-%d %H:%M:%S')
+                    eta = ReadTime(tables[table % len(tables)]['Started'])
                     eta += datetime.timedelta(minutes = duration)
                 eta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
             elif len(scheduledtables) > 0:
-                if scheduledtables[0]['ScheduledStart'] is None or table >= 1:
+                scheduledtable = scheduledtables[table % len(scheduledtables)]
+                if scheduledtable['ScheduledStart'] is None or (
+                        "Taken" in scheduledtable and scheduledtable["Taken"] == playercount):
                     eta = None
                 else:
-                    eta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
+                    if not "Taken" in scheduledtable:
+                        scheduledtable["Taken"] = 0
+                    scheduledtable["Taken"] += 1
+                    eta = ReadTime(scheduledtable['ScheduledStart'])
             else:
                 eta = None
-            remaining = (eta - now).total_seconds()
-            if remaining > 0:
-                remaining = util.timeString(remaining)
+            if eta is not None:
+                remaining = (eta - now).total_seconds()
+                if remaining > 0:
+                    remaining = util.timeString(remaining)
+                else:
+                    remaining = "NOW"
             else:
-                remaining = "NOW"
-            queue += [{'Id': row[0],
-                        'Name': row[1],
-                        'HasPhone': row[2] is not None,
+                remaining = "NEVER"
+
+            elapsed = (now - added).total_seconds()
+            elapsed = util.timeString(elapsed)
+
+            queue += [{'Id': id,
+                        'Name': name,
+                        'HasPhone': phone is not None,
+                        'Elapsed': elapsed,
+                        'Added': str(added),
                         'ETA': str(eta),
                         'Remaining': remaining}]
             position += 1

@@ -32,8 +32,19 @@
 							$(table).css({'left':x})
 						if(y !== undefined)
 							$(table).css({'top':y})
-						var tabletype = $(this).find(".tabletype");
-						tabletype.val(tabletype.data("type"));
+						var tabletypeinput = $(this).find("select.tabletype");
+						var tabletypedisp = $(this).find("span.tabletypedisp");
+
+						tabletypeinput.val(tabletypeinput.data("type"));
+
+						if(editMode) {
+							tabletypeinput.show();
+							tabletypedisp.hide();
+						}
+						else {
+							tabletypeinput.hide();
+							tabletypedisp.show();
+						}
 					});
 					$("#tables .scheduledstart").datetimepicker({'format':'Y-m-d H:i:00'});
 					$("#tables .scheduledstart").change(window.tableSchedule);
@@ -44,7 +55,7 @@
 					});
 					if(editMode) {
 						$("#tables .tabletype").change(window.tableType);
-						$(".table").draggable({
+						$("#tables .table").draggable({
 							snap:true,
 							snapMode:"both",
 							stop:function(event, ui) {
@@ -57,11 +68,13 @@
 								}, 'json');
 							}
 						});
+						$("#tables .table").find(".elapsed,.players,.startbutton,.fillbutton,.notifybutton,.clearschedulebutton,.scheduledstart").hide();
 						$("#addtable").css("display", "inline-block");
 						$("#editmode").text("Stop Editing");
 					}
 					else {
 						$("#tables .tabletype").attr("disabled", true);
+						$("#tables .topbar > .delete").hide();
 					}
 					$(".players").sortable({
 						connectWith:".playerqueue, .players",
@@ -168,7 +181,7 @@
 				if(elapsed > $(table).data('duration') * 60 * 1000)
 					$(table).addClass("warn");
 			});
-			$(".player.queued, .queueeta").each(function(i, player) {
+			$(".queueeta").each(function(i, player) {
 				var eta = $(player).data("eta-date");
 				if(eta === undefined) {
 					var eta = new Date($(player).data("eta"));
@@ -185,6 +198,25 @@
 						$(player).children(".remaining").text(timeString(remaining));
 					else
 						$(player).children(".remaining").text("NOW");
+				}
+			});
+			$(".player.queued").each(function(i, player) {
+				var added = $(player).data("added-date");
+				if(added === undefined) {
+					var added = new Date($(player).data("added"));
+					if(!isNaN(added.getTime())) {
+						$(player).data("added-date", added);
+						added = $(player).data("added-date");
+					}
+					else
+						added = undefined;
+				}
+				if(added !== undefined) {
+					var elapsed = Math.floor(now - added);
+					if(elapsed > 0)
+						$(player).children(".elapsed").text(timeString(elapsed));
+					else
+						$(player).children(".elapsed").text("NOW");
 				}
 			});
 		}
@@ -226,9 +258,10 @@
 			if(!editMode)
 				return;
 			var p = $("#table-" + table);
-			var n = p.children("div.name");
+			var t = p.children("div.topbar");
+			var n = t.children("span.name");
 			if(n.length === 0) {
-				n = p.children("input.newname");
+				n = t.children("input.newname");
 				window.api("edittable", true, {'table':table, 'newname':n.val()});
 			}
 			else {
@@ -278,5 +311,3 @@
 		};
 	});
 })(jQuery);
-
-
