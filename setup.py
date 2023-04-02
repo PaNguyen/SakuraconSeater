@@ -8,7 +8,9 @@ setup(name = "SakuraconSeater",
         options = {
             "build_exe": {
                 "packages": ["idna","tornado","twilio","passlib"],
-                "bin_excludes": ["mysettings"],
+                "excludes": ["mysettings", "mysettings.py"],
+                "bin_excludes": ["mysettings", "mysettings.py"],
+                "bin_path_excludes": ["mysettings", "mysettings.py"],
                 "include_files": ["templates/", "static/","sakuraconseater.bat"]
                 }
             },
