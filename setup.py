@@ -8,6 +8,7 @@ setup(name = "SakuraconSeater",
         options = {
             "build_exe": {
                 "packages": ["idna","tornado","twilio","passlib"],
+                "bin_excludes": ["mysettings"],
                 "include_files": ["templates/", "static/","sakuraconseater.bat"]
                 }
             },

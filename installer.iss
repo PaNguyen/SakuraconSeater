@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SakuraconSeater"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.2.1"
 #define MyAppPublisher "Blaise Rideout"
 #define MyAppURL "http://www.blaiserideout.com/"
 #define MyAppExeName "sakuraconseater.bat"
@@ -35,7 +35,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "build\exe.win32-3.6\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "mysettings.py"; DestDir: "{userdocs}\SakuraconSeater"; Flags: ignoreversion
+Source: "mysettings.py"; DestDir: "{userdocs}\SakuraconSeater"; Flags: ignoreversion onlyifdoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{userdocs}\SakuraconSeater"
@@ -44,4 +44,3 @@ Name: "{commondesktop}\{#MyAppName} Server"; Filename: "{app}\{#MyAppExeName}"; 
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Workingdir: "{userdocs}\SakuraconSeater"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec postinstall skipifsilent
-

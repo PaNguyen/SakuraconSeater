@@ -2,6 +2,7 @@
 
 from twilio.rest import Client
 import tornado.web
+import json
 
 import sys
 
@@ -73,10 +74,11 @@ class NotifyPlayerHandler(tornado.web.RequestHandler):
             client = Client(settings.TWILIO_SID, settings.TWILIO_AUTH)
 
             try:
+                message = settings.TEXT_FMT.format("soon!")
                 client.messages.create(
                     to=phone,
-                    from_="+14252767908",
-                    body="Your mahjong table is opening up soon!",
+                    from_=settings.TWILIO_NUMBER,
+                    body=message,
                 )
                 result["status"] = "success"
                 result["message"] = "Notified player"
@@ -110,4 +112,3 @@ class NotifyTableHandler(tornado.web.RequestHandler):
             result["message"] = "Notified " + str(phones) + " players"
             events.logEvent('tablenotify', (table, phones))
         self.write(json.dumps(result))
-

@@ -11,5 +11,5 @@ TWILIO_SID=""
 TWILIO_AUTH=""
 TWILIO_NUMBER=""
 
-TEXT_FMT="Your table is opening up {}"
+TEXT_FMT="Your mahjong table is opening up {}"
 NOTIFY_MINUTES=10
