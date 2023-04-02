@@ -3,6 +3,8 @@
 from twilio.rest import Client
 import tornado.web
 
+import sys
+
 import settings
 import events
 import db

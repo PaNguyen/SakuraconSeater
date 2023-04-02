@@ -8,6 +8,8 @@ import db
 import util
 import events
 
+import sys
+
 def getTypeQueue(tableType):
     with db.getCur() as cur:
         cur.execute("SELECT Duration, Players FROM TableTypes WHERE Type = ?", (tableType,))
@@ -50,17 +52,21 @@ def getTypeQueue(tableType):
                     eta += datetime.timedelta(minutes = duration)
                 eta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
             elif len(scheduledtables) > 0:
+                #TODO: Figure out what to set ETA to in this case
                 if scheduledtables[0]['ScheduledStart'] is None or table >= 1:
                     eta = None
                 else:
                     eta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
             else:
                 eta = None
-            remaining = (eta - now).total_seconds()
-            if remaining > 0:
-                remaining = util.timeString(remaining)
+            if eta is not None:
+                remaining = (eta - now).total_seconds()
+                if remaining > 0:
+                    remaining = util.timeString(remaining)
+                else:
+                    remaining = "NOW"
             else:
-                remaining = "NOW"
+                remaining = "NEVER"
             queue += [{'Id': row[0],
                         'Name': row[1],
                         'HasPhone': row[2] is not None,
@@ -76,12 +82,8 @@ def getTypeQueue(tableType):
             else:
                 neweta = now
             neweta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
-        elif len(scheduledtables) > 0:
-            if table >= 1:
-                neweta = None
-            else:
-                if scheduledtables[0]['ScheduledStart'] is not None:
-                    neweta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
+        elif len(scheduledtables) > 0 and scheduledtables[0]['ScheduledStart'] is not None and table > 1:
+            neweta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
         if neweta is not None:
             newRemaining = (neweta - now).total_seconds()
             if newRemaining > 0:
