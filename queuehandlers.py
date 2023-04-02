@@ -8,6 +8,8 @@ import db
 import util
 import events
 
+import sys
+
 def getTypeQueue(tableType):
     with db.getCur() as cur:
         cur.execute("SELECT Duration, Players FROM TableTypes WHERE Type = ?", (tableType,))
@@ -56,6 +58,7 @@ def getTypeQueue(tableType):
                 eta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
             elif len(scheduledtables) > 0:
                 scheduledtable = scheduledtables[table % len(scheduledtables)]
+                #TODO: Figure out what to set ETA to in this case
                 if scheduledtable['ScheduledStart'] is None or (
                         "Taken" in scheduledtable and scheduledtable["Taken"] == playercount):
                     eta = None
@@ -95,12 +98,8 @@ def getTypeQueue(tableType):
             else:
                 neweta = now
             neweta += datetime.timedelta(minutes = int(table / len(tables)) * duration)
-        elif len(scheduledtables) > 0:
-            if table >= 1:
-                neweta = None
-            else:
-                if scheduledtables[0]['ScheduledStart'] is not None:
-                    neweta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
+        elif len(scheduledtables) > 0 and scheduledtables[0]['ScheduledStart'] is not None and table > 1:
+            neweta = datetime.datetime.strptime(scheduledtables[0]['ScheduledStart'], '%Y-%m-%d %H:%M:%S')
         if neweta is not None:
             newRemaining = (neweta - now).total_seconds()
             if newRemaining > 0:
