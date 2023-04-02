@@ -2,9 +2,9 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SakuraconSeater"
-#define MyAppVersion "1.1.2"
-#define MyAppPublisher "Blaise Ritchie"
-#define MyAppURL "http://www.blaiseritchie.com/"
+#define MyAppVersion "1.1.3"
+#define MyAppPublisher "Blaise Rideout"
+#define MyAppURL "http://www.blaiserideout.com/"
 #define MyAppExeName "sakuraconseater.bat"
 
 [Setup]
