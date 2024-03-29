@@ -14,4 +14,4 @@ setup(name = "SakuraconSeater",
                 "include_files": ["templates/", "static/","sakuraconseater.bat"]
                 }
             },
-        executables = [Executable("sakuraconseater.py", shortcutName="Sakuracon Seater", shortcutDir="StartMenuFolder")])
+        executables = [Executable("sakuraconseater.py", shortcut_name="Sakuracon Seater", shortcut_dir="StartMenuFolder")])

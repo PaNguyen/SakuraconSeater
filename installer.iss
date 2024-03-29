@@ -34,7 +34,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\exe.win32-3.6\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "build\exe.win-amd64-3.12\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "mysettings.py"; DestDir: "{userdocs}\SakuraconSeater"; Flags: ignoreversion onlyifdoesntexist
 
 [Icons]
