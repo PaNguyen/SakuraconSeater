@@ -9,16 +9,16 @@ pip install -r requirements.txt
 python setup.py install
 ```
 
-Startup:
+Startup:  
 Start `sakuraconseater.exe` in a command window  
 Open `localhost:5000` in a browser
 
-Configuration:
+Configuration:  
 Click `Admin`  
 Add Game Type, Duration, and player count  
 Click "Add"
 
-Start:
+Start:  
 Click "Management"  
 Click "Edit Tables"  
 Click "Add Table"  
