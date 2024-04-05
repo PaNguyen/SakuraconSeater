@@ -11,10 +11,13 @@ parser = argparse.ArgumentParser(
     description="Gets helpful stats"
 )
 parser.add_argument('db_filename')
-parser.add_argument('-c', '--csv' , default='stats.csv')
+parser.add_argument('-x', '--excel' , default='stats.xlsx')
 args = parser.parse_args()
+db_file = args.db_filename
+excel_file = args.excel
+print(excel_file)
 
-con = sqlite3.connect(args.db_filename)
+con = sqlite3.connect(db_file)
 cur = con.cursor()
 res = cur.execute("SELECT * FROM Events ORDER BY time ASC;").fetchall()
 
@@ -142,7 +145,7 @@ player_hour_df = player_hour_df.rename_axis(['Times', 'Table type'])
 player_hour_df = player_hour_df.drop(columns=player_df_cols, errors='ignore')
 
 
-with pd.ExcelWriter('stats.xlsx', engine='xlsxwriter') as writer:
+with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
     raw_df.to_excel(writer, sheet_name='Raw Events')
     table_df.to_excel(writer, sheet_name='Table Data')
     player_df.to_excel(writer, sheet_name='Player Data')
