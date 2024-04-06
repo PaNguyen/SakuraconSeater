@@ -114,11 +114,12 @@ def convert_datetime(df, columns):
     for c in columns:
         df[c] = pd.to_datetime(df[c])
 
-raw_df = pd.DataFrame(res)
+raw_df = pd.DataFrame(res, columns=['event', 'time', 'data'])
 
-table_df_cols = ["id", "time_created", "table_type", "players", "time_start", "time_end"]
+table_df_cols = ["id", "table_type", "players", "time_start", "time_end"]
+# Omitting time_created because it's not useful
 table_df = to_dataframe(table_stats, table_df_cols)
-convert_datetime(table_df, ['time_created', 'time_start', 'time_end'])
+convert_datetime(table_df, ['time_start', 'time_end'])
 
 player_df_cols = ["id", "name", "table_type", "time_added_to_queue", "time_added_to_table", "table_added_to", "table_start_time", "table_clear_time", "time_deleted"]
 player_df = to_dataframe(player_stats, player_df_cols)
@@ -146,9 +147,9 @@ player_hour_df = player_hour_df.drop(columns=player_df_cols, errors='ignore')
 
 
 with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
-    raw_df.to_excel(writer, sheet_name='Raw Events')
-    table_df.to_excel(writer, sheet_name='Table Data')
-    player_df.to_excel(writer, sheet_name='Player Data')
+    raw_df.to_excel(writer, sheet_name='Raw Events', index=False)
+    table_df.to_excel(writer, sheet_name='Table Data', index=False)
+    player_df.to_excel(writer, sheet_name='Player Data', index=False)
     table_hour_df.to_excel(writer, sheet_name='Table Stats by Hour')
     table_stats_df.to_excel(writer, sheet_name='Table Stats by Type')
     player_hour_df.to_excel(writer, sheet_name='Player Stats By Hour')
