@@ -6,11 +6,11 @@ A utility for managing the seating process in the mahjong room at Sakura-con
 Setup:
 ```
 pip install -r requirements.txt
-python setup.py install
+pyinstaller sakuraconseater.spec
 ```
 
 Startup:  
-Start `sakuraconseater.exe` in a command window  
+Start `dist/sakuraconseater/sakuraconseater.exe` in a command window  
 Open `localhost:5000` in a browser
 
 Configuration:  

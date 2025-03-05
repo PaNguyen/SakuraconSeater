@@ -167,8 +167,8 @@ class Application(tornado.web.Application):
                 (r"/api/deleteteachingsession", announcement.DeleteTeachingSessionHandler),
         ]
         settings = dict(
-                template_path = os.path.join(curdirname, "templates"),
-                static_path = os.path.join(curdirname, "static"),
+                template_path = os.path.join(curdirname, "_internal", "templates"),
+                static_path = os.path.join(curdirname, "_internal", "static"),
                 cookie_secret = cookie_secret
         )
         tornado.web.Application.__init__(self, handlers, **settings)
