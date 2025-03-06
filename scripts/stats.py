@@ -21,10 +21,11 @@ con = sqlite3.connect(db_file)
 cur = con.cursor()
 res = cur.execute("SELECT * FROM Events ORDER BY time ASC;").fetchall()
 
-tables: dict[int, dict[str, any]] = {} # table_id -> {id, name, time_created, table_type, players}
+tables: dict[int, dict[str, any]] = {} # table_id -> {id, name, time_created, table_type, players, time_start, time_end}
 players: dict[int, dict[str, any]] = {} # player_id -> {id, name, table_type, num_players, time_added_to_queue, table_start_time, table_clear_time, time_deleted}
 table_stats = []
 player_stats = []
+filled_id = -1
 for (event_type, time, data) in res:
     print(event_type, time, data)
     if event_type == 'start':
@@ -33,7 +34,7 @@ for (event_type, time, data) in res:
         table_id = int(json.loads(data))
         if table_id in tables:
             print(f"WARNING overwriting table {table_id}")
-        tables[table_id] = {'id': table_id, 'name': '', 'time_created': time, 'table_type': "default", 'players': []}
+        tables[table_id] = {'id': table_id, 'name': '', 'time_created': time, 'table_type': "default", 'players': [], 'time_start': None, 'time_end': None}
         pass
     elif event_type == 'tabledelete':
         print(f"WARNING tabledelete({table_id}) encountered")
@@ -67,6 +68,8 @@ for (event_type, time, data) in res:
             players[player_id]['table_added_to'] = table_id
         else:
             print(f"WARNING player {player_id} already in table {table_id}")
+        if tables[table_id]['time_start'] is not None:
+            players[player_id]['table_start_time'] = tables[table_id]['time_start']
         pass
     elif event_type == 'tablestart':
         table_id = int(json.loads(data))
@@ -107,7 +110,13 @@ for (event_type, time, data) in res:
         table_id, table_name = json.loads(data)
         tables[int(table_id)]['name'] = table_name
     elif event_type == 'tablefill':
-        # TODO what is this?
+        table_id, cnt = json.loads(data)
+        table_id = int(table_id)
+        cnt = int(cnt)
+        for i in range(cnt):
+            players[filled_id] = {'id': filled_id, 'name': name, 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time}
+            tables[table_id]['players'].append(filled_id)
+            filled_id = filled_id - 1
         pass
     elif event_type == 'playerqueuemove':
         # TODO what is this?
