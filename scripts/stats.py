@@ -114,7 +114,7 @@ for (event_type, time, data) in res:
         table_id = int(table_id)
         cnt = int(cnt)
         for i in range(cnt):
-            players[filled_id] = {'id': filled_id, 'name': name, 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time}
+            players[filled_id] = {'id': filled_id, 'name': '_', 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time}
             tables[table_id]['players'].append(filled_id)
             filled_id = filled_id - 1
         pass
@@ -154,6 +154,11 @@ convert_datetime(table_df, ['time_start', 'time_end'])
 player_df_cols = ["id", "name", "table_type", "time_added_to_queue", "time_added_to_table", "table_added_to", "table_start_time", "table_clear_time", "time_deleted"]
 player_df = to_dataframe(player_stats, player_df_cols)
 convert_datetime(player_df, ['time_added_to_queue', 'time_added_to_table', 'table_start_time', 'table_clear_time', 'time_deleted'])
+def mins_in_queue(p):
+    if not pd.isnull(p["time_deleted"]):
+        return (p["time_deleted"]-p["time_added_to_queue"]).total_seconds() / 60.0
+    return (p["time_added_to_table"] - p["time_added_to_queue"]).total_seconds() / 60.0
+player_df["Minutes in queue"] = player_df.apply(mins_in_queue, axis=1)
 
 # Table stats by hour
 table_hour_grouping = table_df.groupby([pd.Grouper(key='time_start', freq='h'), 'table_type'])
@@ -169,11 +174,16 @@ durations.name = 'Avg Duration (mins)'
 table_stats_df = pd.DataFrame(durations).rename_axis('Table Type')
 
 # Player stats by hour
-player_hour_grouping = player_df.groupby([pd.Grouper(key='time_added_to_queue', freq='h'), 'table_type'])
+grouper = [pd.Grouper(key='time_added_to_queue', freq='h'), 'table_type']
+player_hour_grouping = player_df.groupby(grouper)
 player_hour_df = player_hour_grouping.count()
 player_hour_df = player_hour_df.rename(columns={'id': 'Number Queued', 'time_added_to_table': 'Number Seated', 'time_deleted': 'Number Unqueued'})
 player_hour_df = player_hour_df.rename_axis(['Times', 'Table type'])
+player_hour_df['Average minutes from queue to table'] = player_df[pd.isnull(player_df['time_deleted'])].groupby(grouper)['Minutes in queue'].mean()
+player_hour_df['Average minutes from queue to deletion'] = player_df[~pd.isnull(player_df['time_deleted'])].groupby(grouper)['Minutes in queue'].mean()
 player_hour_df = player_hour_df.drop(columns=player_df_cols, errors='ignore')
+player_hour_df = player_hour_df.drop(columns="Minutes in queue", errors='ignore')
+
 
 
 with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
