@@ -25,7 +25,7 @@ tables: dict[int, dict[str, any]] = {} # table_id -> {id, name, time_created, ta
 players: dict[int, dict[str, any]] = {} # player_id -> {id, name, table_type, num_players, time_added_to_queue, table_start_time, table_clear_time, time_deleted}
 table_stats = []
 player_stats = []
-filled_id = -1
+queue = []
 for (event_type, time, data) in res:
     print(event_type, time, data)
     if event_type == 'start':
@@ -34,7 +34,7 @@ for (event_type, time, data) in res:
         table_id = int(json.loads(data))
         if table_id in tables:
             print(f"WARNING overwriting table {table_id}")
-        tables[table_id] = {'id': table_id, 'name': '', 'time_created': time, 'table_type': "default", 'players': [], 'time_start': None, 'time_end': None}
+        tables[table_id] = {'id': table_id, 'name': '', 'time_created': time, 'table_type': "Free Play", 'players': [], 'time_start': None, 'time_end': None}
         pass
     elif event_type == 'tabledelete':
         print(f"WARNING tabledelete({table_id}) encountered")
@@ -48,17 +48,22 @@ for (event_type, time, data) in res:
         player_id, name, table_type, num_players = json.loads(data)
         if player_id in players:
             print(f"WARNING overwriting player {player_id}")
+            if player_id in queue:
+                queue.remove(player_id)
             for tid in tables:
                 if player_id in tables[tid]['players']:
                     print(f"Removing player {player_id} from table {tid}")
                     tables[tid]['players'].remove(player_id)
         # TODO is num_players worth tracking since players are also split into separate entries?
-        players[player_id] = {'id': player_id, 'name': name, 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time}
+        players[player_id] = {'id': player_id, 'name': name, 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time, 'table_added_to': None}
+        queue.append(player_id)
         pass
     elif event_type == 'playermovetotable':
         player_id, table_id = json.loads(data)
         player_id = int(player_id)
         table_id = int(table_id)
+        if player_id in queue:
+            queue.remove(player_id)
         for tid in tables:
             if player_id in tables[tid]['players']:
                 tables[tid]['players'].remove(player_id)
@@ -98,6 +103,8 @@ for (event_type, time, data) in res:
         pass
     elif event_type == 'playerdelete':
         player_id = int(json.loads(data))
+        if player_id in queue:
+            queue.remove(player_id)
         for table_id in tables:
             if player_id in tables[table_id]['players']:
                 tables[table_id]['players'].remove(player_id)
@@ -113,13 +120,35 @@ for (event_type, time, data) in res:
         table_id, cnt = json.loads(data)
         table_id = int(table_id)
         cnt = int(cnt)
-        for i in range(cnt):
-            players[filled_id] = {'id': filled_id, 'name': '_', 'table_type': table_type, 'num_players': num_players, 'time_added_to_queue': time}
-            tables[table_id]['players'].append(filled_id)
-            filled_id = filled_id - 1
+        if cnt == 0:
+            continue
+        table_type = tables[table_id]['table_type']
+        ids = []
+        c = 0
+        for player_id in queue:
+            if players[player_id]['table_type'] == table_type:
+                ids.append(player_id)
+                c = c + 1
+                if c == cnt:
+                    break
+        print(f"Filling table with {ids}")
+        for player_id in ids:
+            queue.remove(player_id)
+            if player_id not in tables[table_id]['players']:
+                tables[table_id]['players'].append(player_id)
+            players[player_id]['time_added_to_table'] = time
+            players[player_id]['table_added_to'] = table_id
         pass
     elif event_type == 'playerqueuemove':
-        # TODO what is this?
+        player_id, table_type = json.loads(data)
+        player_id = int(player_id)
+        if players[player_id]['table_added_to'] is not None:
+            tables[players[player_id]['table_added_to']]['players'].remove(player_id)
+        players[player_id]['table_added_to'] = None
+        players[player_id]['table_type'] = table_type
+        if player_id in queue: # Usually isn't
+            queue.remove(player_id)
+        queue.append(player_id)
         pass
     elif event_type == 'tableschedule':
         pass
