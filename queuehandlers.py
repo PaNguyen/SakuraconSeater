@@ -45,6 +45,8 @@ def getTypeQueue(tableType):
         now = datetime.datetime.now()
         queue = []
         position = 0
+        #TODO ETA and Remaning have been removed from queue.mst. Leaving the code here
+        #in case we want to do something with them again. Or remove here if it is a perf issue.
         for person in people:
             id, name, phone, added = person
             added = ReadTime(added)
